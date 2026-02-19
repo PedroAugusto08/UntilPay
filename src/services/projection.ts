@@ -2,10 +2,17 @@ export type ProjectionParams = {
   currentBalance: number
   nextSalaryDate: string
   nextSalaryAmount: number
+  expenses: Array<{
+    id: string
+    amount: number
+    date: string
+  }>
 }
 
 export type ProjectionResult = {
   daysLeft: number
+  totalExpenses: number
+  remainingBalance: number
   dailyBudget: number
   projectedBalanceBeforeSalary: number
   projectedBalanceAfterSalary: number
@@ -31,16 +38,20 @@ function getDaysLeft(nextSalaryDate: string): number {
 }
 
 export function calculateProjection(params: ProjectionParams): ProjectionResult {
-  const { currentBalance, nextSalaryDate, nextSalaryAmount } = params
+  const { currentBalance, nextSalaryDate, nextSalaryAmount, expenses } = params
 
   const daysLeft = getDaysLeft(nextSalaryDate)
-  const dailyBudget = currentBalance / daysLeft
-  const projectedBalanceBeforeSalary = currentBalance
-  const projectedBalanceAfterSalary = currentBalance + nextSalaryAmount
-  const isDeficit = currentBalance <= 0
+  const totalExpenses = expenses.reduce((total, expense) => total + expense.amount, 0)
+  const remainingBalance = currentBalance - totalExpenses
+  const dailyBudget = remainingBalance / daysLeft
+  const projectedBalanceBeforeSalary = remainingBalance
+  const projectedBalanceAfterSalary = remainingBalance + nextSalaryAmount
+  const isDeficit = remainingBalance <= 0
 
   return {
     daysLeft,
+    totalExpenses,
+    remainingBalance,
     dailyBudget,
     projectedBalanceBeforeSalary,
     projectedBalanceAfterSalary,
