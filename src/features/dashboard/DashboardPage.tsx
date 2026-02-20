@@ -172,15 +172,8 @@ export function DashboardPage() {
       return
     }
 
-    const today = new Date().toISOString().slice(0, 10)
-    const id = typeof crypto !== 'undefined' && 'randomUUID' in crypto
-      ? crypto.randomUUID()
-      : `${Date.now()}`
-
     addExpense({
-      id,
       amount: expenseAmount,
-      date: today,
     })
 
     setExpenseAmountInput(currencyFormatter.format(0))
