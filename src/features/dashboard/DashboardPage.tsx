@@ -20,6 +20,23 @@ function parseCurrencyInput(formattedValue: string): number {
   return Number(digits) / 100
 }
 
+function formatThousandsInput(rawValue: string): string {
+  const digits = rawValue.replace(/\D/g, '')
+
+  if (!digits) {
+    return ''
+  }
+
+  return new Intl.NumberFormat('pt-BR', {
+    maximumFractionDigits: 0,
+  }).format(Number(digits))
+}
+
+function parseThousandsInput(formattedValue: string): number {
+  const digits = formattedValue.replace(/\D/g, '')
+  return Number(digits || '0')
+}
+
 function formatChartDate(dateISO: string): string {
   const [year, month, day] = dateISO.split('-')
 
@@ -37,6 +54,8 @@ export function DashboardPage() {
   const expenses = useFinanceStore((state) => state.expenses)
   const addExpense = useFinanceStore((state) => state.addExpense)
   const [expenseAmountInput, setExpenseAmountInput] = useState<string>(currencyFormatter.format(0))
+  const [simulatedAmount, setSimulatedAmount] = useState<number>(0)
+  const [simulatedAmountInput, setSimulatedAmountInput] = useState<string>('')
 
   const expenseAmount = parseCurrencyInput(expenseAmountInput)
 
@@ -88,6 +107,37 @@ export function DashboardPage() {
     warning: 'bg-yellow-500',
     danger: 'bg-red-500',
   }[projection.riskLevel]
+
+  const getRiskLevelByDailyBudget = (dailyBudget: number): 'safe' | 'warning' | 'danger' => {
+    if (dailyBudget >= 100) {
+      return 'safe'
+    }
+
+    if (dailyBudget >= 50) {
+      return 'warning'
+    }
+
+    return 'danger'
+  }
+
+  const simulateImpact = (amount: number) => {
+    const sanitizedAmount = Math.max(amount, 0)
+    const simulatedRemainingBalance = Math.max(projection.remainingBalance - sanitizedAmount, 0)
+    const simulatedDailyBudget = simulatedRemainingBalance / projection.daysLeft
+    const simulatedRiskLevel = getRiskLevelByDailyBudget(simulatedDailyBudget)
+    const simulatedFinalBalance = simulatedRemainingBalance + nextSalaryAmount
+
+    return {
+      simulatedRemainingBalance,
+      simulatedDailyBudget,
+      simulatedRiskLevel,
+      simulatedFinalBalance,
+    }
+  }
+
+  const simulation = simulateImpact(simulatedAmount)
+  const riskRank = { safe: 1, warning: 2, danger: 3 } as const
+  const isRiskWorse = riskRank[simulation.simulatedRiskLevel] > riskRank[projection.riskLevel]
 
   const handleExpenseAmountChange = (event: ChangeEvent<HTMLInputElement>) => {
     setExpenseAmountInput(formatCurrencyInput(event.target.value))
@@ -203,6 +253,49 @@ export function DashboardPage() {
             </p>
           </article>
         </div>
+
+        <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 className="text-lg font-semibold text-slate-900">Simular gasto</h2>
+          <p className="mt-1 text-sm text-slate-500">Veja o impacto de um novo gasto sem salvar no sistema.</p>
+
+          <label htmlFor="simulated-expense" className="mt-4 block text-sm font-medium text-slate-700">
+            Valor para simular
+          </label>
+          <input
+            id="simulated-expense"
+            type="text"
+            inputMode="numeric"
+            value={simulatedAmountInput}
+            onChange={(event) => {
+              const formattedValue = formatThousandsInput(event.target.value)
+              setSimulatedAmountInput(formattedValue)
+              setSimulatedAmount(parseThousandsInput(formattedValue))
+            }}
+            className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-lg text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+            placeholder="Ex: 200"
+            aria-label="Valor para simular"
+          />
+
+          <article
+            className={`mt-4 rounded-xl border p-4 ${
+              isRiskWorse ? 'border-red-300 bg-red-50' : 'border-slate-200 bg-slate-50'
+            }`}
+          >
+            <p className="text-sm font-semibold text-slate-900">Após esse gasto:</p>
+            <p className="mt-2 text-sm text-slate-700">
+              Novo orçamento diário: R$ {simulation.simulatedDailyBudget.toFixed(2)}
+            </p>
+            <p className="mt-1 text-sm text-slate-700">
+              Novo risco: {riskStyles[simulation.simulatedRiskLevel].label}
+            </p>
+            <p className="mt-1 text-sm text-slate-700">
+              Novo saldo final: R$ {simulation.simulatedFinalBalance.toFixed(2)}
+            </p>
+            {isRiskWorse && (
+              <p className="mt-2 text-sm font-medium text-red-700">Esta simulação piora seu nível de risco.</p>
+            )}
+          </article>
+        </section>
 
         <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <h2 className="text-lg font-semibold text-slate-900">Adicionar gasto</h2>
