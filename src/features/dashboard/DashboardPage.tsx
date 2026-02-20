@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent } from 'react'
+import { useEffect, useState, type ChangeEvent } from 'react'
 import { LineChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { calculateProjection } from '../../services/projection'
 import { useFinanceStore } from '../../store/useFinanceStore'
@@ -51,9 +51,13 @@ export function DashboardPage() {
   const currentBalance = useFinanceStore((state) => state.currentBalance)
   const nextSalaryDate = useFinanceStore((state) => state.nextSalaryDate)
   const nextSalaryAmount = useFinanceStore((state) => state.nextSalaryAmount)
+  const goalAmount = useFinanceStore((state) => state.goalAmount)
   const expenses = useFinanceStore((state) => state.expenses)
   const addExpense = useFinanceStore((state) => state.addExpense)
+  const setGoal = useFinanceStore((state) => state.setGoal)
+
   const [expenseAmountInput, setExpenseAmountInput] = useState<string>(currencyFormatter.format(0))
+  const [goalAmountInput, setGoalAmountInput] = useState<string>('')
   const [simulatedAmount, setSimulatedAmount] = useState<number>(0)
   const [simulatedAmountInput, setSimulatedAmountInput] = useState<string>('')
 
@@ -77,6 +81,7 @@ export function DashboardPage() {
     currentBalance,
     nextSalaryDate,
     nextSalaryAmount,
+    goalAmount,
     expenses,
   })
 
@@ -122,13 +127,12 @@ export function DashboardPage() {
 
   const simulateImpact = (amount: number) => {
     const sanitizedAmount = Math.max(amount, 0)
-    const simulatedRemainingBalance = Math.max(projection.remainingBalance - sanitizedAmount, 0)
+    const simulatedRemainingBalance = Math.max(projection.effectiveBalance - sanitizedAmount, 0)
     const simulatedDailyBudget = simulatedRemainingBalance / projection.daysLeft
     const simulatedRiskLevel = getRiskLevelByDailyBudget(simulatedDailyBudget)
     const simulatedFinalBalance = simulatedRemainingBalance + nextSalaryAmount
 
     return {
-      simulatedRemainingBalance,
       simulatedDailyBudget,
       simulatedRiskLevel,
       simulatedFinalBalance,
@@ -142,6 +146,26 @@ export function DashboardPage() {
   const handleExpenseAmountChange = (event: ChangeEvent<HTMLInputElement>) => {
     setExpenseAmountInput(formatCurrencyInput(event.target.value))
   }
+
+  const handleGoalAmountChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const digits = event.target.value.replace(/\D/g, '')
+
+    if (!digits) {
+      setGoalAmountInput('')
+      setGoal(0)
+      return
+    }
+
+    const numericValue = Number(digits) / 100
+    const formattedValue = currencyFormatter.format(numericValue)
+
+    setGoalAmountInput(formattedValue)
+    setGoal(numericValue)
+  }
+
+  useEffect(() => {
+    setGoalAmountInput(goalAmount > 0 ? currencyFormatter.format(goalAmount) : '')
+  }, [goalAmount])
 
   const handleAddExpense = () => {
     if (expenseAmount <= 0) {
@@ -175,6 +199,36 @@ export function DashboardPage() {
             Risco: {riskCard.label}
           </p>
           <p className="mt-1 text-sm text-slate-700">{riskCard.message}</p>
+        </article>
+
+        <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 className="text-lg font-semibold text-slate-900">Meta de economia</h2>
+          <p className="mt-1 text-sm text-slate-500">Defina uma meta para reservar antes do próximo salário.</p>
+
+          <label htmlFor="goal-amount" className="mt-4 block text-sm font-medium text-slate-700">
+            Valor da meta
+          </label>
+          <input
+            id="goal-amount"
+            type="text"
+            inputMode="numeric"
+            value={goalAmountInput}
+            onChange={handleGoalAmountChange}
+            className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-lg text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+            placeholder="R$ 0,00"
+            aria-label="Valor da meta"
+          />
+        </section>
+
+        <article
+          className={`mb-6 rounded-2xl border p-5 shadow-sm ${
+            projection.achievable ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'
+          }`}
+        >
+          <p className="text-sm font-semibold text-slate-900">Meta Ativa</p>
+          <p className="mt-2 text-sm text-slate-700">Valor da meta: R$ {goalAmount.toFixed(2)}</p>
+          <p className="mt-1 text-sm text-slate-700">Orçamento diário efetivo: R$ {projection.dailyBudget.toFixed(2)}</p>
+          <p className="mt-1 text-sm text-slate-700">Status: {projection.achievable ? 'atingível' : 'quebrada'}</p>
         </article>
 
         <article className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -242,15 +296,11 @@ export function DashboardPage() {
           </article>
 
           <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm text-slate-500">
-              Saldo antes do salário: R$ {projection.projectedBalanceBeforeSalary.toFixed(2)}
-            </p>
+            <p className="text-sm text-slate-500">Saldo efetivo: R$ {projection.effectiveBalance.toFixed(2)}</p>
           </article>
 
           <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm text-slate-500">
-              Saldo após receber: R$ {projection.projectedBalanceAfterSalary.toFixed(2)}
-            </p>
+            <p className="text-sm text-slate-500">Saldo após receber: R$ {projection.projectedBalanceAfterSalary.toFixed(2)}</p>
           </article>
         </div>
 
@@ -282,15 +332,9 @@ export function DashboardPage() {
             }`}
           >
             <p className="text-sm font-semibold text-slate-900">Após esse gasto:</p>
-            <p className="mt-2 text-sm text-slate-700">
-              Novo orçamento diário: R$ {simulation.simulatedDailyBudget.toFixed(2)}
-            </p>
-            <p className="mt-1 text-sm text-slate-700">
-              Novo risco: {riskStyles[simulation.simulatedRiskLevel].label}
-            </p>
-            <p className="mt-1 text-sm text-slate-700">
-              Novo saldo final: R$ {simulation.simulatedFinalBalance.toFixed(2)}
-            </p>
+            <p className="mt-2 text-sm text-slate-700">Novo orçamento diário: R$ {simulation.simulatedDailyBudget.toFixed(2)}</p>
+            <p className="mt-1 text-sm text-slate-700">Novo risco: {riskStyles[simulation.simulatedRiskLevel].label}</p>
+            <p className="mt-1 text-sm text-slate-700">Novo saldo final: R$ {simulation.simulatedFinalBalance.toFixed(2)}</p>
             {isRiskWorse && (
               <p className="mt-2 text-sm font-medium text-red-700">Esta simulação piora seu nível de risco.</p>
             )}

@@ -2,6 +2,7 @@ export type ProjectionParams = {
   currentBalance: number
   nextSalaryDate: string
   nextSalaryAmount: number
+  goalAmount: number
   expenses: Array<{
     id: string
     amount: number
@@ -20,6 +21,10 @@ export type ProjectionResult = {
   }>
   totalExpenses: number
   remainingBalance: number
+  effectiveBalance: number
+  adjustedBalance: number
+  adjustedDailyBudget: number
+  achievable: boolean
   dailyBudget: number
   projectedBalanceBeforeSalary: number
   projectedBalanceAfterSalary: number
@@ -94,16 +99,20 @@ function getDaysLeft(nextSalaryDate: string): number {
 }
 
 export function calculateProjection(params: ProjectionParams): ProjectionResult {
-  const { currentBalance, nextSalaryDate, nextSalaryAmount, expenses } = params
+  const { currentBalance, nextSalaryDate, nextSalaryAmount, goalAmount, expenses } = params
 
   const daysLeft = getDaysLeft(nextSalaryDate)
   const { totalCycleDays, daysPassed, progressPercentage } = getCycleProgress(nextSalaryDate)
   const totalExpenses = expenses.reduce((total, expense) => total + expense.amount, 0)
   const remainingBalance = currentBalance - totalExpenses
-  const dailyBudget = remainingBalance / daysLeft
-  const projectedBalanceBeforeSalary = remainingBalance
-  const projectedBalanceAfterSalary = remainingBalance + nextSalaryAmount
-  const isDeficit = remainingBalance <= 0
+  const effectiveBalance = remainingBalance - goalAmount
+  const achievable = effectiveBalance >= 0
+  const dailyBudget = achievable ? effectiveBalance / daysLeft : 0
+  const adjustedBalance = effectiveBalance
+  const adjustedDailyBudget = dailyBudget
+  const projectedBalanceBeforeSalary = effectiveBalance
+  const projectedBalanceAfterSalary = effectiveBalance + nextSalaryAmount
+  const isDeficit = effectiveBalance <= 0
   const riskLevel = dailyBudget >= 100 ? 'safe' : dailyBudget >= 50 ? 'warning' : 'danger'
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -114,7 +123,7 @@ export function calculateProjection(params: ProjectionParams): ProjectionResult 
 
     return {
       date: formatDateISO(projectionDate),
-      projectedBalance: Math.max(remainingBalance - dailyBudget * dayIndex, 0),
+      projectedBalance: Math.max(effectiveBalance - dailyBudget * dayIndex, 0),
     }
   })
 
@@ -126,6 +135,10 @@ export function calculateProjection(params: ProjectionParams): ProjectionResult 
     dailyProjection,
     totalExpenses,
     remainingBalance,
+    effectiveBalance,
+    adjustedBalance,
+    adjustedDailyBudget,
+    achievable,
     dailyBudget,
     projectedBalanceBeforeSalary,
     projectedBalanceAfterSalary,

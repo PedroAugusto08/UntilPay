@@ -11,10 +11,12 @@ type FinanceStore = {
   currentBalance: number
   nextSalaryDate: string
   nextSalaryAmount: number
+  goalAmount: number
   expenses: Expense[]
   setCurrentBalance: (value: number) => void
   setNextSalaryDate: (value: string) => void
   setNextSalaryAmount: (value: number) => void
+  setGoal: (amount: number) => void
   addExpense: (expense: Expense) => void
 }
 
@@ -24,6 +26,7 @@ export const useFinanceStore = create<FinanceStore>()(
       currentBalance: 0,
       nextSalaryDate: '',
       nextSalaryAmount: 0,
+      goalAmount: 0,
       expenses: [],
       setCurrentBalance: (value: number) =>
         set({
@@ -37,6 +40,10 @@ export const useFinanceStore = create<FinanceStore>()(
         set({
           nextSalaryAmount: value,
         }),
+      setGoal: (amount: number) =>
+        set({
+          goalAmount: amount,
+        }),
       addExpense: (expense: Expense) =>
         set((state) => ({
           expenses: [...state.expenses, expense],
@@ -48,6 +55,7 @@ export const useFinanceStore = create<FinanceStore>()(
         currentBalance: state.currentBalance,
         nextSalaryDate: state.nextSalaryDate,
         nextSalaryAmount: state.nextSalaryAmount,
+        goalAmount: state.goalAmount,
         expenses: state.expenses,
       }),
     },
