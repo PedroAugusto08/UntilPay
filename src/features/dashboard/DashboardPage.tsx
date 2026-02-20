@@ -1,5 +1,5 @@
 import { useEffect, useState, type ChangeEvent } from 'react'
-import { LineChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Bar, BarChart, Cell, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { calculateProjection } from '../../services/projection'
 import { useFinanceStore } from '../../store/useFinanceStore'
 
@@ -47,12 +47,26 @@ function formatChartDate(dateISO: string): string {
   return `${day}/${month}`
 }
 
+function formatCycleLabel(cycleDate: string): string {
+  const parsedDate = new Date(cycleDate)
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return cycleDate
+  }
+
+  return parsedDate.toLocaleDateString('pt-BR', {
+    month: 'short',
+    year: 'numeric',
+  })
+}
+
 export function DashboardPage() {
   const currentBalance = useFinanceStore((state) => state.currentBalance)
   const nextSalaryDate = useFinanceStore((state) => state.nextSalaryDate)
   const nextSalaryAmount = useFinanceStore((state) => state.nextSalaryAmount)
   const goalAmount = useFinanceStore((state) => state.goalAmount)
   const expenses = useFinanceStore((state) => state.expenses)
+  const cyclesHistory = useFinanceStore((state) => state.cyclesHistory)
   const addExpense = useFinanceStore((state) => state.addExpense)
   const setGoal = useFinanceStore((state) => state.setGoal)
 
@@ -84,6 +98,13 @@ export function DashboardPage() {
     goalAmount,
     expenses,
   })
+
+  const chartData = cyclesHistory.map((cycle) => ({
+    cycle: formatCycleLabel(cycle.cycleDate),
+    savedAmount: cycle.savedAmount,
+    goalAmount: cycle.goalAmount,
+    goalAchieved: cycle.goalAchieved,
+  }))
 
   const riskStyles = {
     safe: {
@@ -269,6 +290,49 @@ export function DashboardPage() {
               </LineChart>
             </ResponsiveContainer>
           </div>
+        </article>
+
+        <article className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="mb-3 text-sm font-medium text-slate-700">Histórico de ciclos</p>
+
+          {chartData.length === 0 ? (
+            <p className="text-sm text-slate-500">Nenhum histórico de ciclo disponível ainda.</p>
+          ) : (
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData}>
+                  <XAxis
+                    dataKey="cycle"
+                    tick={{ fill: '#64748b', fontSize: 12 }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tick={{ fill: '#64748b', fontSize: 12 }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(value: number) => `R$ ${value.toFixed(0)}`}
+                  />
+                  <Tooltip
+                    formatter={(value, name) => {
+                      const numericValue = Number(value ?? 0)
+
+                      if (name === 'savedAmount') {
+                        return [`R$ ${numericValue.toFixed(2)}`, 'Economizado']
+                      }
+
+                      return [`R$ ${numericValue.toFixed(2)}`, 'Meta']
+                    }}
+                  />
+                  <Bar dataKey="savedAmount" radius={[8, 8, 0, 0]}>
+                    {chartData.map((entry) => (
+                      <Cell key={`cycle-bar-${entry.cycle}`} fill={entry.goalAchieved ? '#22c55e' : '#ef4444'} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </article>
 
         <div className="grid gap-4 sm:grid-cols-2">
