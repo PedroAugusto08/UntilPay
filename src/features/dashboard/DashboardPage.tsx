@@ -1,4 +1,5 @@
 import { useState, type ChangeEvent } from 'react'
+import { LineChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { calculateProjection } from '../../services/projection'
 import { useFinanceStore } from '../../store/useFinanceStore'
 
@@ -17,6 +18,16 @@ function formatCurrencyInput(rawValue: string): string {
 function parseCurrencyInput(formattedValue: string): number {
   const digits = formattedValue.replace(/\D/g, '')
   return Number(digits) / 100
+}
+
+function formatChartDate(dateISO: string): string {
+  const [year, month, day] = dateISO.split('-')
+
+  if (!year || !month || !day) {
+    return dateISO
+  }
+
+  return `${day}/${month}`
 }
 
 export function DashboardPage() {
@@ -126,6 +137,40 @@ export function DashboardPage() {
               className={`h-full rounded-full transition-all duration-500 ease-out ${progressBarColor}`}
               style={{ width: `${projection.progressPercentage}%` }}
             />
+          </div>
+        </article>
+
+        <article className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="mb-3 text-sm font-medium text-slate-700">Projeção diária de saldo</p>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={projection.dailyProjection}>
+                <XAxis
+                  dataKey="date"
+                  tickFormatter={formatChartDate}
+                  tick={{ fill: '#64748b', fontSize: 12 }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fill: '#64748b', fontSize: 12 }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={(value: number) => `R$ ${value.toFixed(0)}`}
+                />
+                <Tooltip
+                  formatter={(value) => [`R$ ${Number(value ?? 0).toFixed(2)}`, 'Saldo projetado']}
+                  labelFormatter={(label) => `Data: ${formatChartDate(String(label))}`}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="projectedBalance"
+                  stroke="#4f46e5"
+                  strokeWidth={2}
+                  dot={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
         </article>
 

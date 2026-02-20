@@ -14,6 +14,10 @@ export type ProjectionResult = {
   totalCycleDays: number
   daysPassed: number
   progressPercentage: number
+  dailyProjection: Array<{
+    date: string
+    projectedBalance: number
+  }>
   totalExpenses: number
   remainingBalance: number
   dailyBudget: number
@@ -21,6 +25,14 @@ export type ProjectionResult = {
   projectedBalanceAfterSalary: number
   isDeficit: boolean
   riskLevel: 'safe' | 'warning' | 'danger'
+}
+
+function formatDateISO(date: Date): string {
+  const year = date.getFullYear()
+  const month = `${date.getMonth() + 1}`.padStart(2, '0')
+  const day = `${date.getDate()}`.padStart(2, '0')
+
+  return `${year}-${month}-${day}`
 }
 
 function getCycleProgress(nextSalaryDate: string): {
@@ -93,12 +105,25 @@ export function calculateProjection(params: ProjectionParams): ProjectionResult 
   const projectedBalanceAfterSalary = remainingBalance + nextSalaryAmount
   const isDeficit = remainingBalance <= 0
   const riskLevel = dailyBudget >= 100 ? 'safe' : dailyBudget >= 50 ? 'warning' : 'danger'
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const dailyProjection = Array.from({ length: daysLeft }, (_, dayIndex) => {
+    const projectionDate = new Date(today)
+    projectionDate.setDate(today.getDate() + dayIndex)
+
+    return {
+      date: formatDateISO(projectionDate),
+      projectedBalance: Math.max(remainingBalance - dailyBudget * dayIndex, 0),
+    }
+  })
 
   return {
     daysLeft,
     totalCycleDays,
     daysPassed,
     progressPercentage,
+    dailyProjection,
     totalExpenses,
     remainingBalance,
     dailyBudget,
