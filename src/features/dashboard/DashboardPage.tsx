@@ -50,6 +50,34 @@ export function DashboardPage() {
     expenses,
   })
 
+  const riskStyles = {
+    safe: {
+      container: 'border-green-200 bg-green-50',
+      title: 'text-green-800',
+      label: 'Seguro',
+      message: 'Seu orçamento diário está saudável.',
+    },
+    warning: {
+      container: 'border-yellow-200 bg-yellow-50',
+      title: 'text-yellow-800',
+      label: 'Atenção',
+      message: 'Mantenha controle dos gastos para evitar aperto.',
+    },
+    danger: {
+      container: 'border-red-200 bg-red-50',
+      title: 'text-red-800',
+      label: 'Alto',
+      message: 'Seu orçamento diário está baixo e exige ajustes.',
+    },
+  } as const
+
+  const riskCard = riskStyles[projection.riskLevel]
+  const progressBarColor = {
+    safe: 'bg-green-500',
+    warning: 'bg-yellow-500',
+    danger: 'bg-red-500',
+  }[projection.riskLevel]
+
   const handleExpenseAmountChange = (event: ChangeEvent<HTMLInputElement>) => {
     setExpenseAmountInput(formatCurrencyInput(event.target.value))
   }
@@ -80,6 +108,26 @@ export function DashboardPage() {
           <h1 className="text-2xl font-semibold text-slate-900">Projeção financeira</h1>
           <p className="mt-1 text-sm text-slate-500">Resumo até seu próximo recebimento.</p>
         </header>
+
+        <article className={`mb-6 rounded-2xl border p-5 shadow-sm ${riskCard.container}`}>
+          <p className={`text-sm font-semibold uppercase tracking-wide ${riskCard.title}`}>
+            Risco: {riskCard.label}
+          </p>
+          <p className="mt-1 text-sm text-slate-700">{riskCard.message}</p>
+        </article>
+
+        <article className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-sm font-medium text-slate-700">Progresso do ciclo salarial</p>
+            <p className="text-sm font-semibold text-slate-900">{projection.progressPercentage.toFixed(0)}%</p>
+          </div>
+          <div className="h-3 w-full overflow-hidden rounded-full bg-slate-200">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ease-out ${progressBarColor}`}
+              style={{ width: `${projection.progressPercentage}%` }}
+            />
+          </div>
+        </article>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
