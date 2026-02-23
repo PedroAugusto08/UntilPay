@@ -2,6 +2,7 @@ import { useState } from 'react'
 import viteLogo from '/vite.svg'
 import reactLogo from '/vite.svg'
 
+// Componente de exemplo do template Vite (não usado no fluxo principal atual).
 function App() {
   const [count, setCount] = useState(0)
 

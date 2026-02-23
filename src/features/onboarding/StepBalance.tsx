@@ -10,6 +10,7 @@ const currencyFormatter = new Intl.NumberFormat('pt-BR', {
   currency: 'BRL',
 })
 
+// Formata enquanto digita (ex.: 1234 -> R$ 12,34).
 function formatCurrencyInput(rawValue: string): string {
   const digits = rawValue.replace(/\D/g, '')
   const numericValue = Number(digits) / 100
@@ -17,6 +18,7 @@ function formatCurrencyInput(rawValue: string): string {
   return currencyFormatter.format(Number.isNaN(numericValue) ? 0 : numericValue)
 }
 
+// Converte o texto formatado em número para salvar no store.
 function parseCurrencyInput(formattedValue: string): number {
   const digits = formattedValue.replace(/\D/g, '')
   return Number(digits) / 100
@@ -33,6 +35,7 @@ export function StepBalance({ onContinue }: StepBalanceProps) {
   }
 
   const handleContinue = () => {
+    // Persistimos o saldo inicial e avançamos para a próxima etapa.
     setCurrentBalance(currentValue)
     onContinue()
   }

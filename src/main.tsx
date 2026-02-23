@@ -4,6 +4,7 @@ import { RouterProvider } from 'react-router-dom'
 import './index.css'
 import { router } from './app/router'
 
+// Ponto de entrada da aplicação: sobe o React e entrega o controle para o roteador.
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <RouterProvider router={router} />

@@ -3,6 +3,7 @@ import { Bar, BarChart, Cell, Line, LineChart, ResponsiveContainer, Tooltip, XAx
 import { calculateProjection } from '../../services/projection'
 import { useFinanceStore } from '../../store/useFinanceStore'
 
+// Componente legado da dashboard (mantido para referência/migração).
 const currencyFormatter = new Intl.NumberFormat('pt-BR', {
   style: 'currency',
   currency: 'BRL',
@@ -15,6 +16,7 @@ function formatCurrencyInput(rawValue: string): string {
   return currencyFormatter.format(Number.isNaN(numericValue) ? 0 : numericValue)
 }
 
+// Conversão da máscara monetária para número.
 function parseCurrencyInput(formattedValue: string): number {
   const digits = formattedValue.replace(/\D/g, '')
   return Number(digits) / 100
@@ -65,13 +67,16 @@ export function DashboardPage() {
   const nextSalaryDate = useFinanceStore((state) => state.nextSalaryDate)
   const nextSalaryAmount = useFinanceStore((state) => state.nextSalaryAmount)
   const goalAmount = useFinanceStore((state) => state.goalAmount)
+  const longTermGoal = useFinanceStore((state) => state.longTermGoal)
   const expenses = useFinanceStore((state) => state.expenses)
   const cyclesHistory = useFinanceStore((state) => state.cyclesHistory)
   const addExpense = useFinanceStore((state) => state.addExpense)
   const setGoal = useFinanceStore((state) => state.setGoal)
+  const setLongTermGoal = useFinanceStore((state) => state.setLongTermGoal)
 
   const [expenseAmountInput, setExpenseAmountInput] = useState<string>(currencyFormatter.format(0))
   const [goalAmountInput, setGoalAmountInput] = useState<string>('')
+  const [longTermGoalInput, setLongTermGoalInput] = useState<string>('')
   const [simulatedAmount, setSimulatedAmount] = useState<number>(0)
   const [simulatedAmountInput, setSimulatedAmountInput] = useState<string>('')
 
@@ -79,6 +84,7 @@ export function DashboardPage() {
 
   const hasMissingData = currentBalance <= 0 || !nextSalaryDate || nextSalaryAmount <= 0
 
+  // Se faltar base do onboarding, mostramos aviso amigável.
   if (hasMissingData) {
     return (
       <main className="min-h-screen bg-slate-100 p-4 sm:p-6">
@@ -105,6 +111,11 @@ export function DashboardPage() {
     goalAmount: cycle.goalAmount,
     goalAchieved: cycle.goalAchieved,
   }))
+
+  const longTermGoalPercentage =
+    longTermGoal.targetAmount > 0
+      ? Math.min((longTermGoal.accumulatedAmount / longTermGoal.targetAmount) * 100, 100)
+      : 0
 
   const riskStyles = {
     safe: {
@@ -184,9 +195,29 @@ export function DashboardPage() {
     setGoal(numericValue)
   }
 
+  const handleLongTermGoalChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const digits = event.target.value.replace(/\D/g, '')
+
+    if (!digits) {
+      setLongTermGoalInput('')
+      setLongTermGoal(0)
+      return
+    }
+
+    const numericValue = Number(digits) / 100
+    const formattedValue = currencyFormatter.format(numericValue)
+
+    setLongTermGoalInput(formattedValue)
+    setLongTermGoal(numericValue)
+  }
+
   useEffect(() => {
     setGoalAmountInput(goalAmount > 0 ? currencyFormatter.format(goalAmount) : '')
   }, [goalAmount])
+
+  useEffect(() => {
+    setLongTermGoalInput(longTermGoal.targetAmount > 0 ? currencyFormatter.format(longTermGoal.targetAmount) : '')
+  }, [longTermGoal.targetAmount])
 
   const handleAddExpense = () => {
     if (expenseAmount <= 0) {
@@ -291,6 +322,48 @@ export function DashboardPage() {
             </ResponsiveContainer>
           </div>
         </article>
+
+        <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 className="text-lg font-semibold text-slate-900">Meta acumulativa</h2>
+          <p className="mt-1 text-sm text-slate-500">Defina uma meta de longo prazo para acumular ao longo dos ciclos.</p>
+
+          <label htmlFor="long-term-goal" className="mt-4 block text-sm font-medium text-slate-700">
+            Valor da meta acumulativa
+          </label>
+          <input
+            id="long-term-goal"
+            type="text"
+            inputMode="numeric"
+            value={longTermGoalInput}
+            onChange={handleLongTermGoalChange}
+            className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-lg text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+            placeholder="R$ 0,00"
+            aria-label="Valor da meta acumulativa"
+          />
+        </section>
+
+        {longTermGoal.targetAmount > 0 && (
+          <article className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="text-sm font-semibold text-slate-900">Meta acumulativa</p>
+            <p className="mt-2 text-sm text-slate-700">
+              R$ {longTermGoal.accumulatedAmount.toFixed(2)} / R$ {longTermGoal.targetAmount.toFixed(2)}
+            </p>
+            <p className="mt-1 text-xs font-medium text-slate-500">{longTermGoalPercentage.toFixed(0)}%</p>
+
+            <div className="mt-3 h-2 w-full rounded bg-slate-200">
+              <div
+                className={`h-2 rounded transition-all duration-500 ease-out ${
+                  longTermGoal.isCompleted ? 'bg-green-500' : 'bg-indigo-500'
+                }`}
+                style={{ width: `${longTermGoalPercentage}%` }}
+              />
+            </div>
+
+            {longTermGoal.isCompleted && (
+              <p className="mt-2 text-sm font-medium text-green-700">Meta concluída 🎉</p>
+            )}
+          </article>
+        )}
 
         <article className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="mb-3 text-sm font-medium text-slate-700">Histórico de ciclos</p>

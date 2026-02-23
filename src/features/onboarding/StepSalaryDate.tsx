@@ -5,6 +5,7 @@ type StepSalaryDateProps = {
   onContinue: () => void
 }
 
+// Define o menor valor permitido no input date (hoje).
 function getTodayInputDate(): string {
   const today = new Date()
   const year = today.getFullYear()
@@ -25,6 +26,7 @@ export function StepSalaryDate({ onContinue }: StepSalaryDateProps) {
   }
 
   const handleContinue = () => {
+    // Proteção extra contra datas no passado.
     if (isPastDateSelected) {
       return
     }

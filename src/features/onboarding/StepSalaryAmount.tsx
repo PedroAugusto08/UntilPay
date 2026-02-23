@@ -10,6 +10,7 @@ const currencyFormatter = new Intl.NumberFormat('pt-BR', {
   currency: 'BRL',
 })
 
+// Mesmo padrão de máscara monetária usado nas outras telas.
 function formatCurrencyInput(rawValue: string): string {
   const digits = rawValue.replace(/\D/g, '')
   const numericValue = Number(digits) / 100
@@ -17,6 +18,7 @@ function formatCurrencyInput(rawValue: string): string {
   return currencyFormatter.format(Number.isNaN(numericValue) ? 0 : numericValue)
 }
 
+// Extrai o número real que será salvo no estado global.
 function parseCurrencyInput(formattedValue: string): number {
   const digits = formattedValue.replace(/\D/g, '')
   return Number(digits) / 100
@@ -33,6 +35,7 @@ export function StepSalaryAmount({ onContinue }: StepSalaryAmountProps) {
   }
 
   const handleContinue = () => {
+    // Salva salário informado e conclui o onboarding.
     setNextSalaryAmount(salaryAmount)
     onContinue()
   }

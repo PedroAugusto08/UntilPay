@@ -32,6 +32,7 @@ export type ProjectionResult = {
   riskLevel: 'safe' | 'warning' | 'danger'
 }
 
+// Padroniza datas para YYYY-MM-DD (bom para gráficos e comparações).
 function formatDateISO(date: Date): string {
   const year = date.getFullYear()
   const month = `${date.getMonth() + 1}`.padStart(2, '0')
@@ -40,6 +41,7 @@ function formatDateISO(date: Date): string {
   return `${year}-${month}-${day}`
 }
 
+// Aceita string de data em formatos comuns e devolve início do dia.
 function parseDateStartOfDay(dateValue: string): Date | null {
   const dateMatch = dateValue.match(/^(\d{4})-(\d{2})-(\d{2})/)
 
@@ -60,6 +62,7 @@ function parseDateStartOfDay(dateValue: string): Date | null {
   return parsedDate
 }
 
+// Calcula o avanço do ciclo salarial atual para alimentar barra de progresso.
 function getCycleProgress(nextSalaryDate: string): {
   totalCycleDays: number
   daysPassed: number
@@ -100,6 +103,7 @@ function getCycleProgress(nextSalaryDate: string): {
   }
 }
 
+// Garante que sempre exista ao menos 1 dia restante para evitar divisão por zero.
 function getDaysLeft(nextSalaryDate: string): number {
   const today = new Date()
   const targetDate = parseDateStartOfDay(nextSalaryDate)
@@ -118,6 +122,7 @@ function getDaysLeft(nextSalaryDate: string): number {
   return Math.max(diffInDays, 1)
 }
 
+// Motor principal de projeção: transforma estado atual em métricas para a UI.
 export function calculateProjection(params: ProjectionParams): ProjectionResult {
   const { currentBalance, nextSalaryDate, nextSalaryAmount, goalAmount, expenses } = params
 
@@ -131,6 +136,8 @@ export function calculateProjection(params: ProjectionParams): ProjectionResult 
     const amount = Number.isFinite(expense.amount) ? expense.amount : 0
     return total + amount
   }, 0)
+
+  // Saldo disponível para o dia a dia depois de gastos e meta do ciclo.
   const remainingBalance = safeCurrentBalance - totalExpenses
   const rawEffectiveBalance = remainingBalance - safeGoalAmount
   const achievable = rawEffectiveBalance >= 0
@@ -141,6 +148,8 @@ export function calculateProjection(params: ProjectionParams): ProjectionResult 
   const projectedBalanceBeforeSalary = effectiveBalance
   const projectedBalanceAfterSalary = effectiveBalance + safeNextSalaryAmount
   const isDeficit = effectiveBalance <= 0
+
+  // Regra simples de risco baseada no orçamento diário.
   const riskLevel = !achievable ? 'danger' : dailyBudget >= 100 ? 'safe' : dailyBudget >= 50 ? 'warning' : 'danger'
   const today = new Date()
   today.setHours(0, 0, 0, 0)
