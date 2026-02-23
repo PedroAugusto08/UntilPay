@@ -62,13 +62,17 @@ function createExpenseId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
 }
 
-function buildRolloverPatch(state: FinanceStore): Partial<FinanceStore> | null {
+function buildRolloverPatch(state: FinanceStore, forceOneCycle = false): Partial<FinanceStore> | null {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
   const nextSalaryDate = parseDateStartOfDay(state.nextSalaryDate)
 
-  if (!nextSalaryDate || today < nextSalaryDate) {
+  if (!nextSalaryDate) {
+    return null
+  }
+
+  if (!forceOneCycle && today < nextSalaryDate) {
     return null
   }
 
@@ -78,7 +82,7 @@ function buildRolloverPatch(state: FinanceStore): Partial<FinanceStore> | null {
   const updatedHistory = [...state.cyclesHistory]
   let iterationCount = 0
 
-  while (today >= activeCycleDate && iterationCount < MAX_ROLLOVER_ITERATIONS) {
+  while ((forceOneCycle ? iterationCount === 0 : today >= activeCycleDate) && iterationCount < MAX_ROLLOVER_ITERATIONS) {
     const totalExpenses = activeExpenses.reduce((sum, expense) => sum + expense.amount, 0)
     const savedAmount = state.nextSalaryAmount - totalExpenses
 
@@ -121,6 +125,7 @@ type FinanceStore = {
   setGoal: (amount: number) => void
   addExpense: (expense: NewExpenseInput) => void
   runSalaryCycleRollover: () => void
+  forceSalaryCycleRollover: () => void
 }
 
 export const useFinanceStore = create<FinanceStore>()(
@@ -128,6 +133,14 @@ export const useFinanceStore = create<FinanceStore>()(
     (set, get) => {
       const runSalaryCycleRollover = () => {
         const rolloverPatch = buildRolloverPatch(get())
+
+        if (rolloverPatch) {
+          set(rolloverPatch)
+        }
+      }
+
+      const forceSalaryCycleRollover = () => {
+        const rolloverPatch = buildRolloverPatch(get(), true)
 
         if (rolloverPatch) {
           set(rolloverPatch)
@@ -183,6 +196,7 @@ export const useFinanceStore = create<FinanceStore>()(
         })
       },
       runSalaryCycleRollover,
+      forceSalaryCycleRollover,
     }
     },
     {

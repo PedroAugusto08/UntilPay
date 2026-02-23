@@ -5,15 +5,30 @@ type StepSalaryDateProps = {
   onContinue: () => void
 }
 
+function getTodayInputDate(): string {
+  const today = new Date()
+  const year = today.getFullYear()
+  const month = `${today.getMonth() + 1}`.padStart(2, '0')
+  const day = `${today.getDate()}`.padStart(2, '0')
+
+  return `${year}-${month}-${day}`
+}
+
 export function StepSalaryDate({ onContinue }: StepSalaryDateProps) {
   const setNextSalaryDate = useFinanceStore((state) => state.setNextSalaryDate)
   const [salaryDate, setSalaryDate] = useState<string>('')
+  const minDate = getTodayInputDate()
+  const isPastDateSelected = salaryDate.length > 0 && salaryDate < minDate
 
   const handleSalaryDateChange = (event: ChangeEvent<HTMLInputElement>) => {
     setSalaryDate(event.target.value)
   }
 
   const handleContinue = () => {
+    if (isPastDateSelected) {
+      return
+    }
+
     setNextSalaryDate(salaryDate)
     onContinue()
   }
@@ -31,16 +46,20 @@ export function StepSalaryDate({ onContinue }: StepSalaryDateProps) {
       <input
         id="next-salary-date"
         type="date"
+        min={minDate}
         value={salaryDate}
         onChange={handleSalaryDateChange}
         className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-base text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
         aria-label="Próxima data de salário"
       />
+      {isPastDateSelected && (
+        <p className="mt-2 text-sm text-red-600">Escolha uma data de hoje em diante.</p>
+      )}
 
       <button
         type="button"
         onClick={handleContinue}
-        disabled={salaryDate.length === 0}
+        disabled={salaryDate.length === 0 || isPastDateSelected}
         className="mt-6 w-full rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-300"
       >
         Continuar
