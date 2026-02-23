@@ -1,4 +1,4 @@
-import { Navigate, createBrowserRouter } from 'react-router-dom'
+import { Navigate, createHashRouter } from 'react-router-dom'
 import { OnboardingPage } from '../features/onboarding/OnboardingPage'
 import { CurrentCyclePage } from '../features/dashboard/CurrentCyclePage'
 import { DashboardLayout } from '../features/dashboard/DashboardLayout'
@@ -6,7 +6,8 @@ import { HistoryPage } from '../features/dashboard/HistoryPage'
 import { OverviewPage } from '../features/dashboard/OverviewPage'
 
 // Mapa principal de rotas da aplicação.
-export const router = createBrowserRouter([
+// Hash router para evitar tela branca em hospedagem estática (ex.: GitHub Pages).
+export const router = createHashRouter([
   {
     // Entrada do usuário: onboarding em etapas.
     path: '/',
