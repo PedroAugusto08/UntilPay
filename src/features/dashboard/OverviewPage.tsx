@@ -1,3 +1,4 @@
+import { motion } from 'framer-motion'
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useDashboardData } from './useDashboardData'
 import { formatChartDate } from './dashboardUtils'
@@ -36,6 +37,8 @@ export function OverviewPage() {
   }
 
   const remainingLongTermAmount = Math.max(longTermGoal.targetAmount - longTermGoal.accumulatedAmount, 0)
+  // Clamp explícito para evitar overflow visual em qualquer cenário de dado.
+  const clampedLongTermGoalPercentage = Math.max(0, Math.min(longTermGoalPercentage, 100))
 
   return (
     <div className="space-y-6">
@@ -73,14 +76,21 @@ export function OverviewPage() {
           <p className="mt-2 text-sm text-[#9CA3AF]">
             R$ {longTermGoal.accumulatedAmount.toFixed(2)} / R$ {longTermGoal.targetAmount.toFixed(2)}
           </p>
-          <p className="mt-1 text-xs font-semibold text-[#9CA3AF]">{longTermGoalPercentage.toFixed(0)}%</p>
+          <p className="mt-1 text-xs font-semibold text-[#9CA3AF]">{clampedLongTermGoalPercentage.toFixed(0)}%</p>
 
-          <div className="mt-4 h-3 w-full rounded bg-[#232938]">
-            <div
-              className={`h-3 rounded transition-all duration-500 ease-out ${
-                longTermGoal.isCompleted ? 'bg-[#22C55E]' : 'bg-[#3B82F6]'
-              }`}
-              style={{ width: `${longTermGoalPercentage}%` }}
+          <div className="mt-4 h-[10px] w-full overflow-hidden rounded-full bg-[#232938]">
+            {/* Preenchimento premium com gradiente suave e animação de largura sem salto visual. */}
+            <motion.div
+              className="h-full rounded-full"
+              style={{
+                background: 'linear-gradient(90deg, #3B82F6, #8B5CF6)',
+              }}
+              initial={{ width: 0 }}
+              animate={{ width: `${clampedLongTermGoalPercentage}%` }}
+              transition={{
+                duration: 0.6,
+                ease: 'easeOut',
+              }}
             />
           </div>
 

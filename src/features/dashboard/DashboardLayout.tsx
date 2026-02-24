@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { BarChart3, Home, Wallet } from 'lucide-react'
-import { NavLink, useLocation, useNavigate, useOutlet } from 'react-router-dom'
+import { useLocation, useNavigate, useOutlet } from 'react-router-dom'
 
 // Configuração simples das abas do menu inferior.
 const tabs = [
@@ -217,25 +217,52 @@ export function DashboardLayout() {
         <ul className="mx-auto flex h-16 max-w-5xl items-center justify-around px-3">
           {tabs.map((tab) => {
             const Icon = tab.icon
+            const isActive = location.pathname === tab.to
 
             return (
               <li key={tab.to} className="flex-1">
-                <NavLink
-                  to={tab.to}
-                  className={({ isActive }) =>
-                    `relative flex w-full flex-col items-center justify-center gap-1 rounded-xl py-2 text-xs font-medium transition ${
-                      isActive ? 'text-[#3B82F6]' : 'text-[#6B7280]'
-                    }`
-                  }
+                <motion.button
+                  type="button"
+                  onClick={() => {
+                    if (!isActive) {
+                      navigate(tab.to)
+                    }
+                  }}
+                  className="relative flex w-full flex-col items-center justify-center gap-0.5 rounded-xl py-1.5 text-xs font-medium"
+                  transition={{ duration: 0.2, ease: 'easeInOut' }}
                 >
-                  {({ isActive }) => (
-                    <>
-                      {isActive && <span className="absolute -top-[11px] h-0.5 w-10 rounded bg-[#3B82F6]" />}
+                  {/* Área fixa do ícone evita deslocamento visual entre estados. */}
+                  <div className="relative flex h-10 w-10 items-center justify-center">
+                    {/* Highlight compartilhado: desliza suavemente entre as abas ativas. */}
+                    {isActive && (
+                      <motion.div
+                        layoutId="navHighlight"
+                        className="absolute inset-0 rounded-full"
+                        style={{
+                          backgroundColor: 'rgba(59,130,246,0.12)',
+                        }}
+                        transition={{ type: 'spring', stiffness: 300, damping: 24 }}
+                      />
+                    )}
+
+                    {/* Microinteração do ícone: escala levemente quando ativo. */}
+                    <motion.div
+                      animate={{ scale: isActive ? 1.08 : 1 }}
+                      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                      className="relative z-10"
+                      style={{ color: isActive ? '#3B82F6' : '#6B7280' }}
+                    >
                       <Icon size={18} />
-                      <span>{tab.label}</span>
-                    </>
-                  )}
-                </NavLink>
+                    </motion.div>
+                  </div>
+
+                  <span
+                    className="transition-colors duration-200"
+                    style={{ color: isActive ? '#3B82F6' : '#6B7280' }}
+                  >
+                    {tab.label}
+                  </span>
+                </motion.button>
               </li>
             )
           })}
