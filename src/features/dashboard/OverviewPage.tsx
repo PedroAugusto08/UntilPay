@@ -2,15 +2,10 @@ import { motion } from 'framer-motion'
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useDashboardData } from './useDashboardData'
 import { formatChartDate } from './dashboardUtils'
+import { RiskBadge } from './RiskBadge'
 
 // Classe base dos cards para manter visual consistente.
 const cardClass = 'rounded-2xl border border-[#232938] bg-[#161A22] p-6'
-
-const riskBadgeStyles = {
-  safe: 'bg-[#22C55E]/15 text-[#22C55E] border-[#22C55E]/40',
-  warning: 'bg-[#F59E0B]/15 text-[#F59E0B] border-[#F59E0B]/40',
-  danger: 'bg-[#EF4444]/15 text-[#EF4444] border-[#EF4444]/40',
-} as const
 
 const riskLabels = {
   safe: 'Seguro',
@@ -62,9 +57,7 @@ export function OverviewPage() {
       <article className={cardClass}>
         <div className="flex items-center justify-between">
           <p className="text-sm text-[#9CA3AF]">Indicador de risco</p>
-          <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${riskBadgeStyles[riskLevel]}`}>
-            {riskLabels[riskLevel]}
-          </span>
+          <RiskBadge level={riskLevel} label={riskLabels[riskLevel]} />
         </div>
         <p className="mt-3 text-sm text-[#F3F4F6]">Orçamento diário atual: R$ {projection.dailyBudget.toFixed(2)}</p>
       </article>
