@@ -43,6 +43,7 @@ export function DashboardLayout() {
   const outlet = useOutlet()
   const touchStartXRef = useRef<number | null>(null)
   const touchStartYRef = useRef<number | null>(null)
+  const isHorizontalSwipeRef = useRef(false)
   const previousPathnameRef = useRef(location.pathname)
   const [edgePullX, setEdgePullX] = useState(0)
 
@@ -68,10 +69,18 @@ export function DashboardLayout() {
   const hasPreviousTab = currentTabIndex > 0
   const hasNextTab = currentTabIndex >= 0 && currentTabIndex < tabs.length - 1
 
+  const resetSwipeState = () => {
+    touchStartXRef.current = null
+    touchStartYRef.current = null
+    isHorizontalSwipeRef.current = false
+    setEdgePullX(0)
+  }
+
   const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
     const touch = event.touches[0]
     touchStartXRef.current = touch.clientX
     touchStartYRef.current = touch.clientY
+    isHorizontalSwipeRef.current = false
     setEdgePullX(0)
   }
 
@@ -87,8 +96,21 @@ export function DashboardLayout() {
     const deltaX = touch.clientX - touchStartX
     const deltaY = touch.clientY - touchStartY
 
+    const absDeltaX = Math.abs(deltaX)
+    const absDeltaY = Math.abs(deltaY)
+    const SWIPE_LOCK_THRESHOLD = 10
+
+    // Depois que o gesto fica claramente horizontal, travamos o scroll vertical.
+    if (!isHorizontalSwipeRef.current && absDeltaX > absDeltaY && absDeltaX > SWIPE_LOCK_THRESHOLD) {
+      isHorizontalSwipeRef.current = true
+    }
+
+    if (isHorizontalSwipeRef.current && event.cancelable) {
+      event.preventDefault()
+    }
+
     // Se o gesto está mais vertical, desativa resistência para não brigar com o scroll.
-    if (Math.abs(deltaY) > Math.abs(deltaX)) {
+    if (absDeltaY > absDeltaX) {
       setEdgePullX(0)
       return
     }
@@ -115,6 +137,7 @@ export function DashboardLayout() {
     const touchStartY = touchStartYRef.current
 
     if (touchStartX === null || touchStartY === null || currentTabIndex < 0) {
+      resetSwipeState()
       return
     }
 
@@ -124,7 +147,7 @@ export function DashboardLayout() {
 
     // Evita troca de aba quando o usuário está rolando verticalmente.
     if (Math.abs(deltaY) > Math.abs(deltaX)) {
-      setEdgePullX(0)
+      resetSwipeState()
       return
     }
 
@@ -133,19 +156,23 @@ export function DashboardLayout() {
     // Swipe para esquerda avança para a próxima aba.
     if (deltaX <= -SWIPE_THRESHOLD) {
       goToTabByIndex(currentTabIndex + 1)
-      setEdgePullX(0)
+      resetSwipeState()
       return
     }
 
     // Swipe para direita volta para a aba anterior.
     if (deltaX >= SWIPE_THRESHOLD) {
       goToTabByIndex(currentTabIndex - 1)
-      setEdgePullX(0)
+      resetSwipeState()
       return
     }
 
     // Se não trocou de aba, volta suavemente da resistência de borda.
-    setEdgePullX(0)
+    resetSwipeState()
+  }
+
+  const handleTouchCancel = () => {
+    resetSwipeState()
   }
 
   return (
@@ -154,10 +181,11 @@ export function DashboardLayout() {
       <section className="mx-auto max-w-5xl px-4 py-6">
         {/* Container estável para evitar "pulo" de layout durante a troca de telas. */}
         <div
-          className="relative min-h-[calc(100vh-8.5rem)] overflow-x-hidden"
+          className="relative min-h-[calc(100vh-8.5rem)] overflow-x-hidden touch-pan-y"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
+          onTouchCancel={handleTouchCancel}
         >
           <motion.div
             // Camada da resistência de borda (não troca rota, só feedback tátil visual).
