@@ -1,5 +1,6 @@
+import { AnimatePresence, motion } from 'framer-motion'
 import { BarChart3, Home, Wallet } from 'lucide-react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, useLocation, useOutlet } from 'react-router-dom'
 
 // Configuração simples das abas do menu inferior.
 const tabs = [
@@ -21,11 +22,29 @@ const tabs = [
 ]
 
 export function DashboardLayout() {
+  const location = useLocation()
+  const outlet = useOutlet()
+
   return (
     // Casca visual compartilhada de todas as telas do dashboard.
     <main className="min-h-screen bg-[#0F1115] pb-24 text-[#F3F4F6]">
       <section className="mx-auto max-w-5xl px-4 py-6">
-        <Outlet />
+        {/* Container estável para evitar "pulo" de layout durante a troca de telas. */}
+        <div className="relative min-h-[calc(100vh-8.5rem)] overflow-x-hidden">
+          {/* AnimatePresence coordena animação de saída + entrada entre rotas. */}
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={location.pathname}
+              initial={{ opacity: 0, x: 40 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -40 }}
+              transition={{ duration: 0.25, ease: 'easeInOut' }}
+              className="min-h-[calc(100vh-8.5rem)]"
+            >
+              {outlet}
+            </motion.div>
+          </AnimatePresence>
+        </div>
       </section>
 
       {/* Navegação fixa para facilitar uso com uma mão (mobile first). */}
