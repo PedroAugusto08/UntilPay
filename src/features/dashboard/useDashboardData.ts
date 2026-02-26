@@ -13,6 +13,7 @@ export function useDashboardData() {
   const cyclesHistory = useFinanceStore((state) => state.cyclesHistory)
 
   const addExpense = useFinanceStore((state) => state.addExpense)
+  const removeExpense = useFinanceStore((state) => state.removeExpense)
   const setGoal = useFinanceStore((state) => state.setGoal)
   const setLongTermGoal = useFinanceStore((state) => state.setLongTermGoal)
 
@@ -56,6 +57,7 @@ export function useDashboardData() {
     longTermGoalPercentage,
     riskLevel,
     addExpense,
+    removeExpense,
     setGoal,
     setLongTermGoal,
   }

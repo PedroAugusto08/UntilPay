@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useDashboardData } from './useDashboardData'
 import { currencyFormatter, formatChartDate, formatCurrencyInput, parseCurrencyInput } from './dashboardUtils'
+import { EXPENSE_CATEGORIES, type ExpenseCategory } from '../../utils/expenseCategories'
 
 // Classe base dos cards para manter visual consistente.
 const cardClass = 'rounded-2xl border border-[#232938] bg-[#161A22] p-6'
@@ -39,6 +40,14 @@ export function OverviewPage() {
   const previousBalanceRef = useRef(displayedBalance)
   const [countStart, setCountStart] = useState(displayedBalance)
   const [expenseAmountInput, setExpenseAmountInput] = useState<string>(currencyFormatter.format(0))
+  const [expenseCategory, setExpenseCategory] = useState<ExpenseCategory>('Alimentação')
+  const [expenseDate, setExpenseDate] = useState<string>(() => {
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = `${now.getMonth() + 1}`.padStart(2, '0')
+    const day = `${now.getDate()}`.padStart(2, '0')
+    return `${year}-${month}-${day}`
+  })
 
   useEffect(() => {
     // Count-up inicia do saldo anterior para manter animação suave entre atualizações.
@@ -63,12 +72,18 @@ export function OverviewPage() {
   }
 
   const handleAddExpense = () => {
-    if (expenseAmount <= 0) {
+    if (expenseAmount <= 0 || !expenseCategory) {
       return
     }
 
-    addExpense({ amount: expenseAmount })
+    addExpense({
+      amount: expenseAmount,
+      category: expenseCategory,
+      date: expenseDate,
+    })
+
     setExpenseAmountInput(currencyFormatter.format(0))
+    setExpenseCategory('Alimentação')
   }
 
   return (
@@ -116,6 +131,35 @@ export function OverviewPage() {
 
       <section className={cardClass}>
         <h2 className="text-lg font-semibold text-[#F3F4F6]">Adicionar gasto</h2>
+        <label htmlFor="expense-category-dashboard" className="mt-4 block text-sm font-medium text-[#9CA3AF]">
+          Categoria
+        </label>
+        <select
+          id="expense-category-dashboard"
+          value={expenseCategory}
+          onChange={(event) => setExpenseCategory(event.target.value as ExpenseCategory)}
+          className="mt-2 w-full rounded-2xl border border-[#232938] bg-[#0F1115] px-4 py-3 text-base text-[#F3F4F6] outline-none transition focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/30"
+          aria-label="Categoria do gasto"
+        >
+          {EXPENSE_CATEGORIES.map((category) => (
+            <option key={category} value={category}>
+              {category}
+            </option>
+          ))}
+        </select>
+
+        <label htmlFor="expense-date-dashboard" className="mt-4 block text-sm font-medium text-[#9CA3AF]">
+          Data
+        </label>
+        <input
+          id="expense-date-dashboard"
+          type="date"
+          value={expenseDate}
+          onChange={(event) => setExpenseDate(event.target.value)}
+          className="mt-2 w-full rounded-2xl border border-[#232938] bg-[#0F1115] px-4 py-3 text-base text-[#F3F4F6] outline-none transition focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/30"
+          aria-label="Data do gasto"
+        />
+
         <label htmlFor="expense-amount-dashboard" className="mt-4 block text-sm font-medium text-[#9CA3AF]">
           Valor do gasto
         </label>
@@ -133,7 +177,7 @@ export function OverviewPage() {
           <button
             type="button"
             onClick={handleAddExpense}
-            disabled={expenseAmount <= 0}
+            disabled={expenseAmount <= 0 || !expenseCategory}
             className="rounded-2xl bg-[#3B82F6] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#2563EB] disabled:cursor-not-allowed disabled:bg-[#232938]"
           >
             Adicionar gasto

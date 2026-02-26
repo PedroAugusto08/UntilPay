@@ -226,6 +226,7 @@ export function DashboardPage() {
 
     addExpense({
       amount: expenseAmount,
+      category: 'Outros',
     })
 
     setExpenseAmountInput(currencyFormatter.format(0))

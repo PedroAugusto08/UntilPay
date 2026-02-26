@@ -1,14 +1,18 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { EXPENSE_CATEGORIES, type ExpenseCategory } from '../utils/expenseCategories'
 
 export type Expense = {
   id: string
   amount: number
+  category: ExpenseCategory
   date: string
 }
 
 type NewExpenseInput = {
   amount: number
+  category: ExpenseCategory
+  date?: string
 }
 
 export type CycleHistoryEntry = {
@@ -59,9 +63,27 @@ function parseDateStartOfDay(dateValue: string): Date | null {
   return parsedDate
 }
 
+function getTodayInputDate(): string {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = `${now.getMonth() + 1}`.padStart(2, '0')
+  const day = `${now.getDate()}`.padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 // Armazena apenas data (sem horário local), reduzindo ruído por fuso horário.
 function toUTCStartOfDayISO(date: Date): string {
   return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())).toISOString()
+}
+
+function normalizeExpenseDateISO(dateValue?: string): string {
+  const parsedDate = parseDateStartOfDay(dateValue ?? getTodayInputDate())
+
+  if (!parsedDate) {
+    return toUTCStartOfDayISO(new Date())
+  }
+
+  return toUTCStartOfDayISO(parsedDate)
 }
 
 // Gera id único para cada gasto sem depender de backend.
@@ -159,6 +181,7 @@ type FinanceStore = {
   setLongTermGoal: (target: number) => void
   resetLongTermGoal: () => void
   addExpense: (expense: NewExpenseInput) => void
+  removeExpense: (expenseId: string) => void
   runSalaryCycleRollover: () => void
   forceSalaryCycleRollover: () => void
 }
@@ -251,16 +274,28 @@ export const useFinanceStore = create<FinanceStore>()(
       addExpense: (expense: NewExpenseInput) => {
         // Cada novo gasto é salvo já com id e data para histórico.
         runSalaryCycleRollover()
+
+        if (!EXPENSE_CATEGORIES.includes(expense.category)) {
+          return
+        }
+
         set({
           expenses: [
             ...get().expenses,
             {
               id: createExpenseId(),
-              ...expense,
-              date: new Date().toISOString(),
+              amount: expense.amount,
+              category: expense.category,
+              date: normalizeExpenseDateISO(expense.date),
             },
           ],
         })
+      },
+      removeExpense: (expenseId: string) => {
+        runSalaryCycleRollover()
+        set((state) => ({
+          expenses: state.expenses.filter((expense) => expense.id !== expenseId),
+        }))
       },
       runSalaryCycleRollover,
       forceSalaryCycleRollover,

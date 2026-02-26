@@ -1,6 +1,7 @@
-import { useEffect, useState, type ChangeEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
 import { motion } from 'framer-motion'
-import { PiggyBank, Receipt } from 'lucide-react'
+import { Car, Ellipsis, Film, GraduationCap, HeartPulse, House, PiggyBank, Receipt, Trash2, UtensilsCrossed } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { useDashboardData } from './useDashboardData'
 import {
   currencyFormatter,
@@ -9,6 +10,7 @@ import {
   parseThousandsInput,
 } from './dashboardUtils'
 import { EmptyState } from './EmptyState'
+import { EXPENSE_CATEGORIES, type ExpenseCategory } from '../../utils/expenseCategories'
 
 const cardClass = 'rounded-2xl border border-[#232938] bg-[#161A22] p-6'
 
@@ -17,6 +19,244 @@ const riskLabels = {
   warning: 'Atenção',
   danger: 'Alto',
 } as const
+
+const categoryIconMap: Record<ExpenseCategory, LucideIcon> = {
+  Alimentação: UtensilsCrossed,
+  Transporte: Car,
+  Moradia: House,
+  Lazer: Film,
+  Saúde: HeartPulse,
+  Educação: GraduationCap,
+  Outros: Ellipsis,
+}
+
+function formatUTCDateKey(date: Date): string {
+  const year = date.getUTCFullYear()
+  const month = `${date.getUTCMonth() + 1}`.padStart(2, '0')
+  const day = `${date.getUTCDate()}`.padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function getDateKeyFromISO(dateISO: string): string {
+  const dateMatch = dateISO.match(/^(\d{4}-\d{2}-\d{2})/)
+
+  if (dateMatch) {
+    return dateMatch[1]
+  }
+
+  const parsedDate = new Date(dateISO)
+  if (Number.isNaN(parsedDate.getTime())) {
+    return formatUTCDateKey(new Date())
+  }
+
+  return formatUTCDateKey(parsedDate)
+}
+
+function formatGroupDateLabel(dateKey: string): string {
+  const todayKey = formatUTCDateKey(new Date())
+  const yesterdayDate = new Date()
+  yesterdayDate.setUTCDate(yesterdayDate.getUTCDate() - 1)
+  const yesterdayKey = formatUTCDateKey(yesterdayDate)
+
+  if (dateKey === todayKey) {
+    return 'Hoje'
+  }
+
+  if (dateKey === yesterdayKey) {
+    return 'Ontem'
+  }
+
+  const [year, month, day] = dateKey.split('-').map(Number)
+  const utcDate = new Date(Date.UTC(year, (month || 1) - 1, day || 1))
+
+  return utcDate.toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  })
+}
+
+function normalizeCategory(category: string | undefined): ExpenseCategory {
+  if (category && EXPENSE_CATEGORIES.includes(category as ExpenseCategory)) {
+    return category as ExpenseCategory
+  }
+
+  return 'Outros'
+}
+
+type SwipeExpenseItemProps = {
+  expense: {
+    id: string
+    amount: number
+    category: ExpenseCategory
+    date: string
+  }
+  categoryIcon: LucideIcon
+  onDelete: (expenseId: string) => void
+  index: number
+}
+
+function SwipeExpenseItem({ expense, categoryIcon: CategoryIcon, onDelete, index }: SwipeExpenseItemProps) {
+  const MAX_SWIPE_PX = 80
+  const OPEN_THRESHOLD_PX = 60
+
+  const [translateX, setTranslateX] = useState(0)
+  const [isOpen, setIsOpen] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  const startXRef = useRef<number | null>(null)
+  const startYRef = useRef<number | null>(null)
+  const startOffsetRef = useRef(0)
+  const isHorizontalRef = useRef(false)
+
+  const expenseDateText = new Date(expense.date).toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    timeZone: 'UTC',
+  })
+  const revealProgress = Math.min(Math.abs(translateX) / MAX_SWIPE_PX, 1)
+
+  const resetTouchState = () => {
+    startXRef.current = null
+    startYRef.current = null
+    startOffsetRef.current = 0
+    isHorizontalRef.current = false
+    setIsDragging(false)
+  }
+
+  const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
+    if (isDeleting) {
+      return
+    }
+
+    const touch = event.touches[0]
+    startXRef.current = touch.clientX
+    startYRef.current = touch.clientY
+    startOffsetRef.current = isOpen ? -MAX_SWIPE_PX : 0
+    isHorizontalRef.current = false
+    setIsDragging(true)
+  }
+
+  const handleTouchMove = (event: React.TouchEvent<HTMLDivElement>) => {
+    const startX = startXRef.current
+    const startY = startYRef.current
+
+    if (startX === null || startY === null || isDeleting) {
+      return
+    }
+
+    const touch = event.touches[0]
+    const deltaX = touch.clientX - startX
+    const deltaY = touch.clientY - startY
+    const absDeltaX = Math.abs(deltaX)
+    const absDeltaY = Math.abs(deltaY)
+
+    if (!isHorizontalRef.current && absDeltaX > absDeltaY && absDeltaX > 8) {
+      isHorizontalRef.current = true
+    }
+
+    if (!isHorizontalRef.current) {
+      return
+    }
+
+    if (event.cancelable) {
+      event.preventDefault()
+    }
+
+    const rawNextOffset = startOffsetRef.current + deltaX
+    const clampedOffset = Math.max(-MAX_SWIPE_PX, Math.min(0, rawNextOffset))
+    setTranslateX(clampedOffset)
+  }
+
+  const handleTouchEnd = () => {
+    if (isDeleting) {
+      resetTouchState()
+      return
+    }
+
+    if (!isHorizontalRef.current) {
+      setTranslateX(isOpen ? -MAX_SWIPE_PX : 0)
+      resetTouchState()
+      return
+    }
+
+    const shouldOpen = translateX <= -OPEN_THRESHOLD_PX
+    setIsOpen(shouldOpen)
+    setTranslateX(shouldOpen ? -MAX_SWIPE_PX : 0)
+    resetTouchState()
+  }
+
+  const handleDelete = () => {
+    if (isDeleting) {
+      return
+    }
+
+    setIsDeleting(true)
+    setTimeout(() => {
+      onDelete(expense.id)
+    }, 220)
+  }
+
+  return (
+    <motion.li
+      initial={{ opacity: 0, y: 6 }}
+      animate={isDeleting ? { opacity: 0, y: -6, height: 0 } : { opacity: 1, y: 0, height: 'auto' }}
+      transition={{ duration: 0.22, ease: 'easeOut', delay: isDeleting ? 0 : index * 0.02 }}
+      className="overflow-hidden"
+    >
+      <div className="relative overflow-hidden rounded-xl">
+        <div
+          className="absolute inset-0 z-0 flex items-center justify-end bg-rose-600 pr-4 transition-opacity duration-200 ease-out"
+          style={{ opacity: revealProgress }}
+        >
+          <button
+            type="button"
+            onClick={handleDelete}
+            className={`inline-flex items-center gap-2 rounded-lg px-2 py-1 text-sm font-medium text-white transition-opacity duration-200 ${
+              isOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
+            }`}
+            aria-label={`Excluir gasto de ${expense.category}`}
+          >
+            <Trash2 size={16} />
+            Excluir
+          </button>
+        </div>
+
+        <div
+          className="relative z-10 rounded-xl border border-[#232938] bg-[#0F1115] p-4 transition-transform duration-300 ease-out"
+          style={{ transform: `translateX(${translateX}px)` }}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onTouchCancel={handleTouchEnd}
+          onClick={() => {
+            if (isOpen && !isDragging) {
+              setIsOpen(false)
+              setTranslateX(0)
+            }
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white/5 text-neutral-400">
+                <CategoryIcon size={16} />
+              </span>
+              <div>
+                <p className="text-sm font-medium text-[#F3F4F6]">{expense.category}</p>
+                <p className="text-xs text-neutral-400">{expenseDateText}</p>
+              </div>
+            </div>
+
+            <p className="text-right text-sm font-semibold text-[#F3F4F6]">R$ {expense.amount.toFixed(2)}</p>
+          </div>
+        </div>
+      </div>
+    </motion.li>
+  )
+}
 
 export function CurrentCyclePage() {
   const {
@@ -27,6 +267,7 @@ export function CurrentCyclePage() {
     nextSalaryAmount,
     projection,
     hasMissingData,
+    removeExpense,
     setGoal,
     setLongTermGoal,
   } = useDashboardData()
@@ -66,6 +307,31 @@ export function CurrentCyclePage() {
   const remainingLongTermAmount = Math.max(longTermGoal.targetAmount - longTermGoal.accumulatedAmount, 0)
   // Clamp explícito para evitar overflow visual em qualquer cenário de dado.
   const clampedLongTermGoalPercentage = Math.max(0, Math.min(longTermGoalPercentage, 100))
+  const groupedExpenses = useMemo(() => {
+    const sortedExpenses = [...expenses].sort((a, b) => {
+      const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime()
+      return Number.isNaN(dateDiff) ? 0 : dateDiff
+    })
+
+    const groups = sortedExpenses.reduce<Record<string, typeof sortedExpenses>>((accumulator, expense) => {
+      const dateKey = getDateKeyFromISO(expense.date)
+
+      if (!accumulator[dateKey]) {
+        accumulator[dateKey] = []
+      }
+
+      accumulator[dateKey].push(expense)
+      return accumulator
+    }, {})
+
+    return Object.entries(groups)
+      .sort(([dateKeyA], [dateKeyB]) => dateKeyA < dateKeyB ? 1 : -1)
+      .map(([dateKey, groupedItems]) => ({
+        dateKey,
+        label: formatGroupDateLabel(dateKey),
+        items: groupedItems,
+      }))
+  }, [expenses])
 
   const handleGoalAmountChange = (event: ChangeEvent<HTMLInputElement>) => {
     const digits = event.target.value.replace(/\D/g, '')
@@ -233,16 +499,35 @@ export function CurrentCyclePage() {
             description="Quando você registrar gastos, eles aparecerão aqui para acompanhamento."
           />
         ) : (
-          <ul className="mt-4 space-y-3">
-            {[...expenses]
-              .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-              .map((expense) => (
-                <li key={expense.id} className="flex items-center justify-between rounded-xl border border-[#232938] bg-[#0F1115] px-4 py-3">
-                  <span className="text-sm text-[#9CA3AF]">{new Date(expense.date).toLocaleDateString('pt-BR')}</span>
-                  <span className="text-sm font-semibold text-[#F3F4F6]">R$ {expense.amount.toFixed(2)}</span>
-                </li>
-              ))}
-          </ul>
+          <div className="mt-4 space-y-4">
+            {groupedExpenses.map((group) => (
+              <div key={group.dateKey} className="space-y-2">
+                <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">{group.label}</p>
+
+                <ul className="space-y-2">
+                  {group.items.map((expense, index) => {
+                    const category = normalizeCategory(expense.category)
+                    const CategoryIcon = categoryIconMap[category]
+
+                    return (
+                      <SwipeExpenseItem
+                        key={expense.id}
+                        expense={{
+                          id: expense.id,
+                          amount: expense.amount,
+                          category,
+                          date: expense.date,
+                        }}
+                        categoryIcon={CategoryIcon}
+                        onDelete={removeExpense}
+                        index={index}
+                      />
+                    )
+                  })}
+                </ul>
+              </div>
+            ))}
+          </div>
         )}
       </section>
     </div>
