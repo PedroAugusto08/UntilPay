@@ -3,15 +3,29 @@ import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useDashboardData } from './useDashboardData'
 import { currencyFormatter, formatChartDate, formatCurrencyInput, parseCurrencyInput } from './dashboardUtils'
-import { RiskBadge } from './RiskBadge'
 
 // Classe base dos cards para manter visual consistente.
 const cardClass = 'rounded-2xl border border-[#232938] bg-[#161A22] p-6'
 
-const riskLabels = {
-  safe: 'Seguro',
-  warning: 'Atenção',
-  danger: 'Alto risco',
+const riskCardStyles = {
+  safe: {
+    accentClass: 'bg-emerald-500/70',
+    progressClass: 'bg-emerald-500',
+    labelClass: 'text-emerald-300/90',
+    label: 'Risco: Controlado',
+  },
+  warning: {
+    accentClass: 'bg-amber-500/70',
+    progressClass: 'bg-amber-500',
+    labelClass: 'text-amber-300/90',
+    label: 'Risco: Atenção',
+  },
+  danger: {
+    accentClass: 'bg-rose-600/70',
+    progressClass: 'bg-rose-600',
+    labelClass: 'text-rose-300/90',
+    label: 'Risco: Crítico',
+  },
 } as const
 
 export function OverviewPage() {
@@ -42,6 +56,7 @@ export function OverviewPage() {
 
   const expenseAmount = parseCurrencyInput(expenseAmountInput)
   const clampedCycleProgress = Math.max(0, Math.min(projection.progressPercentage, 100))
+  const activeRiskStyle = riskCardStyles[riskLevel]
 
   const handleExpenseAmountChange = (event: ChangeEvent<HTMLInputElement>) => {
     setExpenseAmountInput(formatCurrencyInput(event.target.value))
@@ -64,7 +79,10 @@ export function OverviewPage() {
       </header>
 
       <section className="grid gap-4">
-        <article className="rounded-2xl border border-white/5 bg-gradient-to-br from-zinc-900 to-zinc-800 p-6 shadow-xl shadow-black/30 sm:p-7">
+        <article className="relative overflow-hidden rounded-2xl border border-white/5 bg-gradient-to-br from-zinc-900 to-zinc-800 p-6 shadow-xl shadow-black/30 sm:p-7">
+          {/* Acento lateral para leitura instantânea do nível de risco no card principal. */}
+          <span className={`absolute inset-y-0 left-0 w-[3px] rounded-full ${activeRiskStyle.accentClass}`} />
+
           <p className="text-xs uppercase tracking-wider text-gray-400">Saldo disponível</p>
           <p className="mt-3 text-4xl font-semibold leading-none tabular-nums text-gray-100 sm:text-5xl">
             R${' '}
@@ -77,6 +95,7 @@ export function OverviewPage() {
               decimals={2}
             />
           </p>
+          <p className={`mt-3 text-xs font-medium ${activeRiskStyle.labelClass}`}>{activeRiskStyle.label}</p>
 
           <div className="mt-6 space-y-2">
             <div className="flex items-center justify-between">
@@ -85,7 +104,7 @@ export function OverviewPage() {
             </div>
             <div className="h-[10px] w-full overflow-hidden rounded-full bg-[#232938]">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-zinc-500 to-zinc-300"
+                className={`h-full rounded-full ${activeRiskStyle.progressClass}`}
                 style={{ width: `${clampedCycleProgress}%` }}
               />
             </div>
@@ -94,14 +113,6 @@ export function OverviewPage() {
           <p className="mt-4 text-sm text-gray-400">Ciclo atual • termina em {projection.daysLeft} dias</p>
         </article>
       </section>
-
-      <article className={cardClass}>
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-[#9CA3AF]">Indicador de risco</p>
-          <RiskBadge level={riskLevel} label={riskLabels[riskLevel]} />
-        </div>
-        <p className="mt-3 text-sm text-[#F3F4F6]">Orçamento diário atual: R$ {projection.dailyBudget.toFixed(2)}</p>
-      </article>
 
       <section className={cardClass}>
         <h2 className="text-lg font-semibold text-[#F3F4F6]">Adicionar gasto</h2>
