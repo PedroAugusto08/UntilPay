@@ -41,6 +41,7 @@ export function OverviewPage() {
   }
 
   const expenseAmount = parseCurrencyInput(expenseAmountInput)
+  const clampedCycleProgress = Math.max(0, Math.min(projection.progressPercentage, 100))
 
   const handleExpenseAmountChange = (event: ChangeEvent<HTMLInputElement>) => {
     setExpenseAmountInput(formatCurrencyInput(event.target.value))
@@ -63,9 +64,9 @@ export function OverviewPage() {
       </header>
 
       <section className="grid gap-4">
-        <article className={cardClass}>
-          <p className="text-sm text-[#9CA3AF]">Saldo atual</p>
-          <p className="mt-3 text-[38px] font-bold leading-none tabular-nums text-[#F3F4F6]">
+        <article className="rounded-2xl border border-white/5 bg-gradient-to-br from-zinc-900 to-zinc-800 p-6 shadow-xl shadow-black/30 sm:p-7">
+          <p className="text-xs uppercase tracking-wider text-gray-400">Saldo disponível</p>
+          <p className="mt-3 text-4xl font-semibold leading-none tabular-nums text-gray-100 sm:text-5xl">
             R${' '}
             <CountUp
               start={countStart}
@@ -76,6 +77,21 @@ export function OverviewPage() {
               decimals={2}
             />
           </p>
+
+          <div className="mt-6 space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="text-xs uppercase tracking-wide text-gray-400">Progresso do ciclo</p>
+              <p className="text-xs font-medium text-gray-300">{clampedCycleProgress.toFixed(0)}%</p>
+            </div>
+            <div className="h-[10px] w-full overflow-hidden rounded-full bg-[#232938]">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-zinc-500 to-zinc-300"
+                style={{ width: `${clampedCycleProgress}%` }}
+              />
+            </div>
+          </div>
+
+          <p className="mt-4 text-sm text-gray-400">Ciclo atual • termina em {projection.daysLeft} dias</p>
         </article>
       </section>
 
