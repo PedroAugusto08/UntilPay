@@ -25,7 +25,7 @@ const tabs = [
 const pageVariants = {
   initial: (direction: 1 | -1) => ({
     opacity: 0,
-    x: direction > 0 ? 40 : -40,
+    x: direction > 0 ? 28 : -28,
   }),
   animate: {
     opacity: 1,
@@ -33,7 +33,7 @@ const pageVariants = {
   },
   exit: (direction: 1 | -1) => ({
     opacity: 0,
-    x: direction > 0 ? -40 : 40,
+    x: direction > 0 ? -28 : 28,
   }),
 }
 
@@ -184,7 +184,7 @@ export function DashboardLayout() {
 
   return (
     // Casca visual compartilhada de todas as telas do dashboard.
-    <main className="min-h-screen bg-[rgba(15,17,21,0.58)] pb-24 text-[#F3F4F6]">
+    <main className="min-h-screen bg-[#0F1115] pb-24 text-[#F3F4F6]">
       <section className="mx-auto max-w-5xl px-4 py-6">
         {/* Container estável para evitar "pulo" de layout durante a troca de telas. */}
         <div
@@ -201,7 +201,7 @@ export function DashboardLayout() {
             className="min-h-[calc(100vh-8.5rem)]"
           >
             {/* AnimatePresence coordena animação de saída + entrada entre rotas. */}
-            <AnimatePresence mode="wait" initial={false} custom={direction}>
+            <AnimatePresence mode="sync" initial={false} custom={direction}>
               <motion.div
                 key={location.pathname}
                 custom={direction}
@@ -209,8 +209,9 @@ export function DashboardLayout() {
                 initial="initial"
                 animate="animate"
                 exit="exit"
-                transition={{ duration: 0.15, ease: 'easeInOut' }}
+                transition={{ duration: 0.15, ease: 'easeOut' }}
                 className="min-h-[calc(100vh-8.5rem)]"
+                style={{ willChange: 'transform, opacity' }}
               >
                 {outlet}
               </motion.div>

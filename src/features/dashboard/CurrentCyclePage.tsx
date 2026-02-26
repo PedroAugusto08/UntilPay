@@ -98,8 +98,9 @@ type SwipeExpenseItemProps = {
 }
 
 function SwipeExpenseItem({ expense, categoryIcon: CategoryIcon, onDelete, index }: SwipeExpenseItemProps) {
-  const MAX_SWIPE_PX = 80
-  const OPEN_THRESHOLD_PX = 60
+  const ACTION_WIDTH_PX = 124
+  const MAX_SWIPE_PX = ACTION_WIDTH_PX
+  const OPEN_THRESHOLD_PX = 72
 
   const [translateX, setTranslateX] = useState(0)
   const [isOpen, setIsOpen] = useState(false)
@@ -215,13 +216,13 @@ function SwipeExpenseItem({ expense, categoryIcon: CategoryIcon, onDelete, index
     >
       <div className="relative overflow-hidden rounded-xl">
         <div
-          className="absolute inset-0 z-0 flex items-center justify-end bg-rose-600 pr-4 transition-opacity duration-200 ease-out"
-          style={{ opacity: revealProgress }}
+          className="absolute right-0 inset-y-0 z-0 overflow-hidden rounded-r-xl bg-rose-600 transition-opacity duration-200 ease-out"
+          style={{ width: ACTION_WIDTH_PX, opacity: revealProgress }}
         >
           <button
             type="button"
             onClick={handleDelete}
-            className={`inline-flex items-center gap-2 rounded-lg px-2 py-1 text-sm font-medium text-white transition-opacity duration-200 ${
+            className={`inline-flex h-full w-full items-center justify-center gap-2 px-3 text-sm font-medium leading-none text-white transition-opacity duration-200 ${
               isOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
             }`}
             aria-label={`Excluir gasto de ${expense.category}`}

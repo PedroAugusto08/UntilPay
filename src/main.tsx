@@ -8,16 +8,7 @@ import { router } from './app/router'
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <div className="app-shell">
-      {/* Camada dinâmica de fundo: um pouco mais perceptível, ainda elegante e discreta. */}
-      <div className="app-background-layer" aria-hidden="true">
-        <div className="app-background-orb app-background-orb-primary animate-floatOne" />
-        <div className="app-background-orb app-background-orb-secondary animate-floatTwo" />
-      </div>
-
-      {/* Conteúdo da aplicação acima do fundo animado. */}
-      <div className="app-content-layer">
-        <RouterProvider router={router} />
-      </div>
+      <RouterProvider router={router} />
     </div>
   </StrictMode>,
 )
