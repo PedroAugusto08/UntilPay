@@ -216,7 +216,7 @@ function SwipeExpenseItem({ expense, categoryIcon: CategoryIcon, onDelete, index
     >
       <div className="relative overflow-hidden rounded-xl">
         <div
-          className="absolute right-0 inset-y-0 z-0 overflow-hidden rounded-r-xl bg-rose-600 transition-opacity duration-200 ease-out"
+          className="absolute right-0 inset-y-0 z-0 overflow-hidden rounded-xl border border-[#232938] bg-rose-600 transition-opacity duration-200 ease-out"
           style={{ width: ACTION_WIDTH_PX, opacity: revealProgress }}
         >
           <button
