@@ -1,7 +1,8 @@
-import { motion } from 'framer-motion'
+import CountUp from 'react-countup'
+import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useDashboardData } from './useDashboardData'
-import { formatChartDate } from './dashboardUtils'
+import { currencyFormatter, formatChartDate, formatCurrencyInput, parseCurrencyInput } from './dashboardUtils'
 import { RiskBadge } from './RiskBadge'
 
 // Classe base dos cards para manter visual consistente.
@@ -15,13 +16,21 @@ const riskLabels = {
 
 export function OverviewPage() {
   const {
-    currentBalance,
-    longTermGoal,
-    longTermGoalPercentage,
+    addExpense,
     projection,
     riskLevel,
     hasMissingData,
   } = useDashboardData()
+  const displayedBalance = projection?.effectiveBalance ?? 0
+  const previousBalanceRef = useRef(displayedBalance)
+  const [countStart, setCountStart] = useState(displayedBalance)
+  const [expenseAmountInput, setExpenseAmountInput] = useState<string>(currencyFormatter.format(0))
+
+  useEffect(() => {
+    // Count-up inicia do saldo anterior para manter animação suave entre atualizações.
+    setCountStart(previousBalanceRef.current)
+    previousBalanceRef.current = displayedBalance
+  }, [displayedBalance])
 
   if (hasMissingData || !projection) {
     return (
@@ -31,9 +40,20 @@ export function OverviewPage() {
     )
   }
 
-  const remainingLongTermAmount = Math.max(longTermGoal.targetAmount - longTermGoal.accumulatedAmount, 0)
-  // Clamp explícito para evitar overflow visual em qualquer cenário de dado.
-  const clampedLongTermGoalPercentage = Math.max(0, Math.min(longTermGoalPercentage, 100))
+  const expenseAmount = parseCurrencyInput(expenseAmountInput)
+
+  const handleExpenseAmountChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setExpenseAmountInput(formatCurrencyInput(event.target.value))
+  }
+
+  const handleAddExpense = () => {
+    if (expenseAmount <= 0) {
+      return
+    }
+
+    addExpense({ amount: expenseAmount })
+    setExpenseAmountInput(currencyFormatter.format(0))
+  }
 
   return (
     <div className="space-y-6">
@@ -42,15 +62,20 @@ export function OverviewPage() {
         <p className="mt-1 text-sm text-[#9CA3AF]">Visão inteligente do seu momento financeiro.</p>
       </header>
 
-      <section className="grid gap-4 sm:grid-cols-2">
+      <section className="grid gap-4">
         <article className={cardClass}>
           <p className="text-sm text-[#9CA3AF]">Saldo atual</p>
-          <p className="mt-3 text-3xl font-extrabold text-[#F3F4F6]">R$ {currentBalance.toFixed(2)}</p>
-        </article>
-
-        <article className={cardClass}>
-          <p className="text-sm text-[#9CA3AF]">Saldo efetivo no ciclo</p>
-          <p className="mt-3 text-3xl font-extrabold text-[#F3F4F6]">R$ {projection.effectiveBalance.toFixed(2)}</p>
+          <p className="mt-3 text-[38px] font-bold leading-none tabular-nums text-[#F3F4F6]">
+            R${' '}
+            <CountUp
+              start={countStart}
+              end={displayedBalance}
+              duration={0.5}
+              separator="."
+              decimal=","
+              decimals={2}
+            />
+          </p>
         </article>
       </section>
 
@@ -62,35 +87,32 @@ export function OverviewPage() {
         <p className="mt-3 text-sm text-[#F3F4F6]">Orçamento diário atual: R$ {projection.dailyBudget.toFixed(2)}</p>
       </article>
 
-      {longTermGoal.targetAmount > 0 && (
-        // Só mostra a meta acumulativa quando ela realmente foi definida.
-        <article className={cardClass}>
-          <p className="text-sm font-semibold text-[#F3F4F6]">Meta acumulativa</p>
-          <p className="mt-2 text-sm text-[#9CA3AF]">
-            R$ {longTermGoal.accumulatedAmount.toFixed(2)} / R$ {longTermGoal.targetAmount.toFixed(2)}
-          </p>
-          <p className="mt-1 text-xs font-semibold text-[#9CA3AF]">{clampedLongTermGoalPercentage.toFixed(0)}%</p>
-
-          <div className="mt-4 h-[10px] w-full overflow-hidden rounded-full bg-[#232938]">
-            {/* Preenchimento premium com gradiente suave e animação de largura sem salto visual. */}
-            <motion.div
-              className="h-full rounded-full"
-              style={{
-                background: 'linear-gradient(90deg, #3B82F6, #8B5CF6)',
-              }}
-              initial={{ width: 0 }}
-              animate={{ width: `${clampedLongTermGoalPercentage}%` }}
-              transition={{
-                duration: 0.6,
-                ease: 'easeOut',
-              }}
-            />
-          </div>
-
-          <p className="mt-2 text-xs text-[#9CA3AF]">Faltam R$ {remainingLongTermAmount.toFixed(2)} para concluir.</p>
-          {longTermGoal.isCompleted && <p className="mt-2 text-sm font-medium text-[#22C55E]">Meta concluída 🎉</p>}
-        </article>
-      )}
+      <section className={cardClass}>
+        <h2 className="text-lg font-semibold text-[#F3F4F6]">Adicionar gasto</h2>
+        <label htmlFor="expense-amount-dashboard" className="mt-4 block text-sm font-medium text-[#9CA3AF]">
+          Valor do gasto
+        </label>
+        <div className="mt-2 flex flex-col gap-3 sm:flex-row">
+          <input
+            id="expense-amount-dashboard"
+            type="text"
+            inputMode="numeric"
+            value={expenseAmountInput}
+            onChange={handleExpenseAmountChange}
+            className="w-full rounded-2xl border border-[#232938] bg-[#0F1115] px-4 py-3 text-lg text-[#F3F4F6] outline-none transition focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/30"
+            placeholder="R$ 0,00"
+            aria-label="Valor do gasto"
+          />
+          <button
+            type="button"
+            onClick={handleAddExpense}
+            disabled={expenseAmount <= 0}
+            className="rounded-2xl bg-[#3B82F6] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#2563EB] disabled:cursor-not-allowed disabled:bg-[#232938]"
+          >
+            Adicionar gasto
+          </button>
+        </div>
+      </section>
 
       <article className={cardClass}>
         <p className="text-sm font-semibold text-[#F3F4F6]">Resumo de projeção</p>

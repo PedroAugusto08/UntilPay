@@ -1,11 +1,10 @@
 import { useEffect, useState, type ChangeEvent } from 'react'
+import { motion } from 'framer-motion'
 import { useDashboardData } from './useDashboardData'
 import {
   currencyFormatter,
-  formatCurrencyInput,
   formatThousandsInput,
   getRiskLevelByDailyBudget,
-  parseCurrencyInput,
   parseThousandsInput,
 } from './dashboardUtils'
 
@@ -21,16 +20,15 @@ export function CurrentCyclePage() {
   const {
     goalAmount,
     longTermGoal,
+    longTermGoalPercentage,
     expenses,
     nextSalaryAmount,
     projection,
     hasMissingData,
-    addExpense,
     setGoal,
     setLongTermGoal,
   } = useDashboardData()
 
-  const [expenseAmountInput, setExpenseAmountInput] = useState<string>(currencyFormatter.format(0))
   const [goalAmountInput, setGoalAmountInput] = useState<string>('')
   const [longTermGoalInput, setLongTermGoalInput] = useState<string>('')
   const [simulatedAmount, setSimulatedAmount] = useState<number>(0)
@@ -44,8 +42,6 @@ export function CurrentCyclePage() {
       </section>
     )
   }
-
-  const expenseAmount = parseCurrencyInput(expenseAmountInput)
 
   // Simulação local: calcula impacto sem gravar nada no store.
   const simulateImpact = (amount: number) => {
@@ -65,10 +61,9 @@ export function CurrentCyclePage() {
   const simulation = simulateImpact(simulatedAmount)
   const riskRank = { safe: 1, warning: 2, danger: 3 } as const
   const isRiskWorse = riskRank[simulation.simulatedRiskLevel] > riskRank[projection.riskLevel]
-
-  const handleExpenseAmountChange = (event: ChangeEvent<HTMLInputElement>) => {
-    setExpenseAmountInput(formatCurrencyInput(event.target.value))
-  }
+  const remainingLongTermAmount = Math.max(longTermGoal.targetAmount - longTermGoal.accumulatedAmount, 0)
+  // Clamp explícito para evitar overflow visual em qualquer cenário de dado.
+  const clampedLongTermGoalPercentage = Math.max(0, Math.min(longTermGoalPercentage, 100))
 
   const handleGoalAmountChange = (event: ChangeEvent<HTMLInputElement>) => {
     const digits = event.target.value.replace(/\D/g, '')
@@ -111,18 +106,6 @@ export function CurrentCyclePage() {
     setLongTermGoalInput(longTermGoal.targetAmount > 0 ? currencyFormatter.format(longTermGoal.targetAmount) : '')
   }, [longTermGoal.targetAmount])
 
-  const handleAddExpense = () => {
-    if (expenseAmount <= 0) {
-      return
-    }
-
-    addExpense({
-      amount: expenseAmount,
-    })
-
-    setExpenseAmountInput(currencyFormatter.format(0))
-  }
-
   return (
     <div className="space-y-6">
       <header>
@@ -164,32 +147,35 @@ export function CurrentCyclePage() {
         />
       </section>
 
-      <section className={cardClass}>
-        <h2 className="text-lg font-semibold text-[#F3F4F6]">Adicionar gasto</h2>
-        <label htmlFor="expense-amount" className="mt-4 block text-sm font-medium text-[#9CA3AF]">
-          Valor do gasto
-        </label>
-        <div className="mt-2 flex flex-col gap-3 sm:flex-row">
-          <input
-            id="expense-amount"
-            type="text"
-            inputMode="numeric"
-            value={expenseAmountInput}
-            onChange={handleExpenseAmountChange}
-            className="w-full rounded-2xl border border-[#232938] bg-[#0F1115] px-4 py-3 text-lg text-[#F3F4F6] outline-none transition focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/30"
-            placeholder="R$ 0,00"
-            aria-label="Valor do gasto"
-          />
-          <button
-            type="button"
-            onClick={handleAddExpense}
-            disabled={expenseAmount <= 0}
-            className="rounded-2xl bg-[#3B82F6] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#2563EB] disabled:cursor-not-allowed disabled:bg-[#232938]"
-          >
-            Adicionar gasto
-          </button>
-        </div>
-      </section>
+      {longTermGoal.targetAmount > 0 && (
+        // Só mostra a meta acumulativa quando ela realmente foi definida.
+        <article className={cardClass}>
+          <p className="text-sm font-semibold text-[#F3F4F6]">Progresso da meta acumulativa</p>
+          <p className="mt-2 text-sm text-[#9CA3AF]">
+            R$ {longTermGoal.accumulatedAmount.toFixed(2)} / R$ {longTermGoal.targetAmount.toFixed(2)}
+          </p>
+          <p className="mt-1 text-xs font-semibold text-[#9CA3AF]">{clampedLongTermGoalPercentage.toFixed(0)}%</p>
+
+          <div className="mt-4 h-[10px] w-full overflow-hidden rounded-full bg-[#232938]">
+            {/* Preenchimento premium com gradiente suave e animação de largura sem salto visual. */}
+            <motion.div
+              className="h-full rounded-full"
+              style={{
+                background: 'linear-gradient(90deg, #3B82F6, #8B5CF6)',
+              }}
+              initial={{ width: 0 }}
+              animate={{ width: `${clampedLongTermGoalPercentage}%` }}
+              transition={{
+                duration: 0.6,
+                ease: 'easeOut',
+              }}
+            />
+          </div>
+
+          <p className="mt-2 text-xs text-[#9CA3AF]">Faltam R$ {remainingLongTermAmount.toFixed(2)} para concluir.</p>
+          {longTermGoal.isCompleted && <p className="mt-2 text-sm font-medium text-[#22C55E]">Meta concluída 🎉</p>}
+        </article>
+      )}
 
       <section className={cardClass}>
         <h2 className="text-lg font-semibold text-[#F3F4F6]">Simular gasto</h2>
