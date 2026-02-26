@@ -177,7 +177,7 @@ export function DashboardLayout() {
 
   return (
     // Casca visual compartilhada de todas as telas do dashboard.
-    <main className="min-h-screen bg-[#0F1115] pb-24 text-[#F3F4F6]">
+    <main className="min-h-screen bg-[rgba(15,17,21,0.58)] pb-24 text-[#F3F4F6]">
       <section className="mx-auto max-w-5xl px-4 py-6">
         {/* Container estável para evitar "pulo" de layout durante a troca de telas. */}
         <div
