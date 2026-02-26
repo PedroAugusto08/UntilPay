@@ -58,6 +58,13 @@ export function DashboardLayout() {
     previousPathnameRef.current = location.pathname
   }, [location.pathname])
 
+  useEffect(() => {
+    // Sempre que muda de aba, abre a nova tela no topo.
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+    document.documentElement.scrollTop = 0
+    document.body.scrollTop = 0
+  }, [location.pathname])
+
   const goToTabByIndex = (index: number) => {
     if (index < 0 || index >= tabs.length) {
       return
