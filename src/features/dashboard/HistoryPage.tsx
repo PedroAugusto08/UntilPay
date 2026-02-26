@@ -1,5 +1,7 @@
 import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { History } from 'lucide-react'
 import { useDashboardData } from './useDashboardData'
+import { EmptyState } from './EmptyState'
 
 // Visual padrão dos cards desta tela.
 const cardClass = 'rounded-2xl border border-[#232938] bg-[#161A22] p-6'
@@ -26,7 +28,11 @@ export function HistoryPage() {
         <p className="mb-4 text-sm font-semibold text-[#F3F4F6]">Histórico de ciclos</p>
 
         {chartData.length === 0 ? (
-          <p className="text-sm text-[#9CA3AF]">Nenhum histórico de ciclo disponível ainda.</p>
+          <EmptyState
+            icon={History}
+            title="Sem histórico ainda"
+            description="Conclua o primeiro ciclo para começar a visualizar sua evolução aqui."
+          />
         ) : (
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">

@@ -1,5 +1,6 @@
 import { useEffect, useState, type ChangeEvent } from 'react'
 import { motion } from 'framer-motion'
+import { PiggyBank, Receipt } from 'lucide-react'
 import { useDashboardData } from './useDashboardData'
 import {
   currencyFormatter,
@@ -7,6 +8,7 @@ import {
   getRiskLevelByDailyBudget,
   parseThousandsInput,
 } from './dashboardUtils'
+import { EmptyState } from './EmptyState'
 
 const cardClass = 'rounded-2xl border border-[#232938] bg-[#161A22] p-6'
 
@@ -177,6 +179,16 @@ export function CurrentCyclePage() {
         </article>
       )}
 
+      {longTermGoal.targetAmount === 0 && (
+        <article className={cardClass}>
+          <EmptyState
+            icon={PiggyBank}
+            title="Meta acumulativa não definida"
+            description="Defina um valor acima para começar a acompanhar seu progresso de longo prazo."
+          />
+        </article>
+      )}
+
       <section className={cardClass}>
         <h2 className="text-lg font-semibold text-[#F3F4F6]">Simular gasto</h2>
         <label htmlFor="simulated-expense" className="mt-4 block text-sm font-medium text-[#9CA3AF]">
@@ -215,7 +227,11 @@ export function CurrentCyclePage() {
       <section className={cardClass}>
         <h2 className="text-lg font-semibold text-[#F3F4F6]">Gastos do ciclo</h2>
         {expenses.length === 0 ? (
-          <p className="mt-3 text-sm text-[#9CA3AF]">Nenhum gasto registrado no ciclo atual.</p>
+          <EmptyState
+            icon={Receipt}
+            title="Sem gastos neste ciclo"
+            description="Quando você registrar gastos, eles aparecerão aqui para acompanhamento."
+          />
         ) : (
           <ul className="mt-4 space-y-3">
             {[...expenses]
