@@ -156,7 +156,7 @@ export function OverviewPage() {
           type="date"
           value={expenseDate}
           onChange={(event) => setExpenseDate(event.target.value)}
-          className="mt-2 w-full rounded-2xl border border-[#232938] bg-[#0F1115] px-4 py-3 text-base text-[#F3F4F6] outline-none transition focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/30"
+          className="mt-2 h-[50px] w-full appearance-none rounded-2xl border border-[#232938] bg-[#0F1115] px-4 text-base text-[#F3F4F6] outline-none transition focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/30"
           aria-label="Data do gasto"
         />
 
