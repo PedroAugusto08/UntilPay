@@ -128,6 +128,8 @@ function SwipeExpenseItem({ expense, categoryIcon: CategoryIcon, onDelete, index
   }
 
   const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
+    event.stopPropagation()
+
     if (isDeleting) {
       return
     }
@@ -141,6 +143,8 @@ function SwipeExpenseItem({ expense, categoryIcon: CategoryIcon, onDelete, index
   }
 
   const handleTouchMove = (event: React.TouchEvent<HTMLDivElement>) => {
+    event.stopPropagation()
+
     const startX = startXRef.current
     const startY = startYRef.current
 
@@ -171,7 +175,9 @@ function SwipeExpenseItem({ expense, categoryIcon: CategoryIcon, onDelete, index
     setTranslateX(clampedOffset)
   }
 
-  const handleTouchEnd = () => {
+  const handleTouchEnd = (event: React.TouchEvent<HTMLDivElement>) => {
+    event.stopPropagation()
+
     if (isDeleting) {
       resetTouchState()
       return
